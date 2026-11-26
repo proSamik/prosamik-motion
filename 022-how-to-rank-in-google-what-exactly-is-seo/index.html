@@ -6,7 +6,7 @@
 <title>Storyboard</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Caveat:wght@700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Caveat:wght@700&family=Montserrat:wght@800&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -17,6 +17,7 @@
   <span class="count">1 / 1</span>
   <button class="btn" id="b-next" aria-label="Next frame">→</button>
   <button class="btn" id="b-table">Script table</button>
+  <button class="btn" id="b-cap">Captions</button>
   <button class="btn" id="b-guides">Guides</button>
   <button class="btn" id="b-notes">Hide notes</button>
 </header>
@@ -28,27 +29,26 @@
       <svg width="0" height="0" style="position:absolute"><defs>
         <linearGradient id="gAccent" x1="0" x2="1"><stop offset="0" stop-color="var(--c1)"/><stop offset="1" stop-color="var(--c2)"/></linearGradient>
       </defs></svg>
-      <div class="cam">
-        <div class="bg"></div>
-        <div class="person" aria-hidden="true">
-          <!-- placeholder: Samik, centred, chest-up -->
-          <svg viewBox="0 0 620 860">
-            <defs><linearGradient id="gp" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#5a5a5f"/><stop offset="1" stop-color="#3b3b3f"/></linearGradient></defs>
-            <ellipse cx="310" cy="250" rx="128" ry="152" fill="url(#gp)"/>
-            <rect x="262" y="370" width="96" height="90" rx="30" fill="url(#gp)"/>
-            <path d="M20 860 C 30 600, 140 470, 310 455 C 480 470, 590 600, 600 860 Z" fill="url(#gp)"/>
-          </svg>
-        </div>
+
+      <!-- talking head: the whole camera frame, zoomed and shifted per frame -->
+      <div class="camwrap"><div class="drift"></div></div>
+
+      <!-- screen share: wallpaper, browser window, camera box on the left -->
+      <div class="ss" aria-hidden="true">
+        <div class="ss-cam"><div class="mini"></div></div>
+        <div class="ss-window"><div class="ss-chrome"><i></i><i></i><i></i><div class="ss-url">yoursite.com</div></div></div>
       </div>
+
+      <div class="caption"></div>
       <div class="safe"></div>
-      <div class="faceZone"></div>
-      <div class="tag">Placeholder footage · person centred</div>
+      <div class="g g-face"></div><div class="g g-mic"></div><div class="g g-panel"></div>
+      <div class="tag">Stand-in footage · your camera goes here</div>
     </div>
   </div>
 
   <section class="notes">
     <div class="cell cue">
-      <div class="meta"><span class="pill ink" id="n-num"></span><span class="pill" id="n-sec"></span><span class="pill" id="n-time"></span><span class="pill" id="n-shot"></span></div>
+      <div class="meta"><span class="pill ink" id="n-num"></span><span class="pill" id="n-sec"></span><span class="pill" id="n-time"></span><span class="pill frame" id="n-shot"></span></div>
       <h4>Spoken line (cue)</h4>
       <p id="n-cue"></p>
     </div>
@@ -56,11 +56,11 @@
     <div class="cell"><h4>Animation in / out</h4><p id="n-motion"></p></div>
     <div class="cell"><h4>How to deliver it</h4><p id="n-deliver"></p></div>
   </section>
-  <p class="keys"><kbd>→</kbd> <kbd>↓</kbd> <kbd>Space</kbd> next · <kbd>←</kbd> <kbd>↑</kbd> back · <kbd>R</kbd> replay · <kbd>T</kbd> script table · <kbd>G</kbd> safe-area guides · <kbd>N</kbd> hide notes · <kbd>F</kbd> fullscreen · click left/right of the frame to step · add <code>?bg=green</code> for graphics on green</p>
+  <p class="keys"><kbd>→</kbd> <kbd>↓</kbd> <kbd>Space</kbd> next · <kbd>←</kbd> <kbd>↑</kbd> back · <kbd>R</kbd> replay · <kbd>C</kbd> captions · <kbd>T</kbd> script table · <kbd>G</kbd> face, mic and graphics zones · <kbd>N</kbd> hide notes · <kbd>F</kbd> fullscreen · click left/right of the frame to step · add <code>?bg=green</code> for graphics on green</p>
 
   <section class="overview">
     <table>
-      <thead><tr><th>#</th><th>Time</th><th>Spoken line</th><th>On screen</th><th>Animation</th><th>Delivery</th></tr></thead>
+      <thead><tr><th>#</th><th>Time</th><th>Framing</th><th>Spoken line</th><th>On screen</th><th>Animation</th><th>Delivery</th></tr></thead>
       <tbody></tbody>
     </table>
   </section>
