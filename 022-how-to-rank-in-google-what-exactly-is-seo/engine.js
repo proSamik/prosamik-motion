@@ -283,22 +283,31 @@
     $(".count").textContent = `${idx + 1} / ${frames.length}`;
     $(".progress i").style.width = ((idx + 1) / frames.length) * 100 + "%";
     if (!replay) history.replaceState(null, "", location.search + "#f" + (idx + 1));
-    document.querySelectorAll(".overview tr[data-i]").forEach((tr) => (tr.style.background = +tr.dataset.i === idx ? "#f6f6f6" : ""));
+    syncTable(replay);
   }
 
+  // script table on the right: one row per frame, the current one highlighted and kept in view
+  const ovScroll = $(".ov-scroll");
   $(".overview tbody").innerHTML = frames
     .map(
       (f, i) =>
-        `<tr data-i="${i}"><td class="n">${i + 1}</td><td>${esc(f.time || "")}</td><td class="fr">${esc(framingLabel(f))}</td><td class="cue">“${esc(f.cue)}”</td><td>${esc(f.onscreen || "")}</td><td>${esc(f.motion || "")}</td><td>${esc(f.deliver || "")}</td></tr>`
+        `<tr data-i="${i}"><td class="n">${i + 1}<small>${esc(f.time || "")}</small></td><td class="cue">“${esc(f.cue)}”</td><td class="fr">${esc(framingLabel(f))}</td><td class="an">${esc(f.onscreen || "")}</td></tr>`
     )
     .join("");
+  function syncTable(instant) {
+    let row = null;
+    document.querySelectorAll(".overview tr[data-i]").forEach((tr) => {
+      const on = +tr.dataset.i === idx;
+      tr.classList.toggle("cur", on);
+      if (on) row = tr;
+    });
+    if (!row || !ovScroll) return;
+    const top = row.offsetTop - ovScroll.clientHeight / 2 + row.offsetHeight / 2;
+    ovScroll.scrollTo({ top: Math.max(0, top), behavior: instant ? "auto" : "smooth" });
+  }
   $(".overview tbody").addEventListener("click", (e) => {
     const tr = e.target.closest("tr[data-i]");
-    if (!tr) return;
-    document.body.classList.remove("table");
-    $("#b-table").classList.remove("on");
-    fit();
-    show(+tr.dataset.i);
+    if (tr) show(+tr.dataset.i);
   });
 
   const toggle = (cls, btn) => { document.body.classList.toggle(cls); if (btn) $(btn).classList.toggle("on"); fit(); };
@@ -312,14 +321,14 @@
     else if (k === "End") { e.preventDefault(); show(frames.length - 1); }
     else if (k === "c" || k === "C") toggle("nocap", "#b-cap");
     else if (k === "n" || k === "N") toggle("clean", "#b-notes");
-    else if (k === "t" || k === "T") toggle("table", "#b-table");
+    else if (k === "t" || k === "T") toggle("table-off", "#b-table");
     else if (k === "g" || k === "G") toggle("guides", "#b-guides");
     else if (k === "f" || k === "F") { const vp = $(".viewport"); document.fullscreenElement ? document.exitFullscreen() : vp.requestFullscreen && vp.requestFullscreen(); }
   });
   document.addEventListener("fullscreenchange", () => setTimeout(fit, 50));
   $("#b-prev").onclick = () => show(idx - 1);
   $("#b-next").onclick = () => show(idx + 1);
-  $("#b-table").onclick = () => toggle("table", "#b-table");
+  $("#b-table").onclick = () => toggle("table-off", "#b-table");
   $("#b-guides").onclick = () => toggle("guides", "#b-guides");
   $("#b-cap").onclick = () => toggle("nocap", "#b-cap");
   $("#b-notes").onclick = () => toggle("clean", "#b-notes");

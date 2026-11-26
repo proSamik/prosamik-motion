@@ -16,7 +16,7 @@
   <button class="btn" id="b-prev" aria-label="Previous frame">←</button>
   <span class="count">1 / 1</span>
   <button class="btn" id="b-next" aria-label="Next frame">→</button>
-  <button class="btn" id="b-table">Script table</button>
+  <button class="btn on" id="b-table">Script table</button>
   <button class="btn" id="b-cap">Captions</button>
   <button class="btn" id="b-guides">Guides</button>
   <button class="btn" id="b-notes">Hide notes</button>
@@ -24,6 +24,7 @@
 <div class="progress"><i></i></div>
 
 <main class="wrap">
+ <div class="left">
   <div class="viewport">
     <div class="stage">
       <svg width="0" height="0" style="position:absolute"><defs>
@@ -56,14 +57,18 @@
     <div class="cell"><h4>Animation in / out</h4><p id="n-motion"></p></div>
     <div class="cell"><h4>How to deliver it</h4><p id="n-deliver"></p></div>
   </section>
-  <p class="keys"><kbd>→</kbd> <kbd>↓</kbd> <kbd>Space</kbd> next · <kbd>←</kbd> <kbd>↑</kbd> back · <kbd>R</kbd> replay · <kbd>C</kbd> captions · <kbd>T</kbd> script table · <kbd>G</kbd> face, mic and graphics zones · <kbd>N</kbd> hide notes · <kbd>F</kbd> fullscreen · click left/right of the frame to step · add <code>?bg=green</code> for graphics on green</p>
+  <p class="keys"><kbd>→</kbd> <kbd>↓</kbd> <kbd>Space</kbd> next · <kbd>←</kbd> <kbd>↑</kbd> back · <kbd>R</kbd> replay · <kbd>C</kbd> captions · <kbd>T</kbd> show or hide the script table · <kbd>G</kbd> face, mic and graphics zones · <kbd>N</kbd> hide notes · <kbd>F</kbd> fullscreen · click left/right of the frame to step · add <code>?bg=green</code> for graphics on green</p>
 
-  <section class="overview">
+ </div>
+ <aside class="overview" aria-label="Script table">
+  <div class="ov-head">Script <span>· click a row to jump</span></div>
+  <div class="ov-scroll">
     <table>
-      <thead><tr><th>#</th><th>Time</th><th>Framing</th><th>Spoken line</th><th>On screen</th><th>Animation</th><th>Delivery</th></tr></thead>
+      <thead><tr><th>#</th><th>Spoken line</th><th>Framing</th><th>What animates</th></tr></thead>
       <tbody></tbody>
     </table>
-  </section>
+  </div>
+ </aside>
 </main>
 
 <script src="frames.js"></script>
