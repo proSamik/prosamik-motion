@@ -50,6 +50,9 @@ body.playing .progress i{background:var(--c1)}
 .btn.sound.muted{color:#777}
 .btn.sound.muted .i-on{display:none}
 .btn.sound.muted .i-off{display:block}
+.btn.voice{padding:9px 16px}
+.btn.voice.on{background:#111;color:#fff;border-color:#111}
+.btn.voice[hidden]{display:none}
 .progress{height:3px;background:var(--line);position:sticky;top:72px;z-index:5}
 .progress i{display:block;height:100%;background:linear-gradient(95deg,var(--c1),var(--c2));transition:width .45s var(--out)}
 

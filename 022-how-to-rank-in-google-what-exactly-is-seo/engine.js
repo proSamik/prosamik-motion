@@ -409,7 +409,11 @@
   // Montserrat may arrive after the first caption is measured: measure again once fonts are ready
   if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => { if (capG && capEl.firstChild) placeCaption(capG); });
   /* ---------- voice: one clip per frame from audio.js ---------- */
-  const AU = window.STORYBOARD_AUDIO || null;
+  // voices: the male TTS voice, plus Samik's cloned voice when audio-samik.js is present
+  const VOICES = [window.STORYBOARD_AUDIO, window.STORYBOARD_AUDIO_ALT].filter((v) => v && v.clips);
+  let vIdx = 0;
+  try { vIdx = Math.min(VOICES.length - 1, Math.max(0, +(localStorage.getItem("sb-voice") || 0))); } catch (e) {}
+  let AU = VOICES[vIdx] || null;
   const voice = new Audio();
   voice.preload = "auto";
   const warm = new Audio();
@@ -628,6 +632,7 @@
     else if (k === "Home") { e.preventDefault(); go(0); }
     else if (k === "End") { e.preventDefault(); go(frames.length - 1); }
     else if ((k === "m" || k === "M") && AU) setMuted(!muted);
+    else if ((k === "v" || k === "V") && VOICES.length > 1) setVoice((vIdx + 1) % VOICES.length);
     else if (k === "c" || k === "C") toggle("nocap", "#b-cap");
     else if (k === "n" || k === "N") toggle("clean", "#b-notes");
     else if (k === "t" || k === "T") toggle("table-off", "#b-table");
@@ -637,6 +642,23 @@
   document.addEventListener("fullscreenchange", () => setTimeout(fit, 50));
   $("#b-play").onclick = togglePlay;
   if (AU) { $("#b-sound").onclick = () => setMuted(!muted); setMuted(muted); } else if ($("#b-sound")) $("#b-sound").hidden = true;
+  function voiceName(v) { return /samik/i.test(v.voice || "") ? "Your voice" : "Male voice"; }
+  function setVoice(n) {
+    vIdx = n; AU = VOICES[n];
+    try { localStorage.setItem("sb-voice", String(n)); } catch (e) {}
+    const b = $("#b-voice");
+    if (b) { $(".lbl", b).textContent = voiceName(AU); b.classList.toggle("on", n > 0); }
+    // replay the current line in the new voice
+    stopVoice();
+    if (playing) show(idx, true);
+    else if (soundOK()) playVoice(idx);
+  }
+  if (VOICES.length > 1 && $("#b-voice")) {
+    $("#b-voice").hidden = false;
+    $(".lbl", $("#b-voice")).textContent = voiceName(AU);
+    $("#b-voice").classList.toggle("on", vIdx > 0);
+    $("#b-voice").onclick = () => setVoice((vIdx + 1) % VOICES.length);
+  }
   $("#b-prev").onclick = () => go(idx - 1);
   $("#b-next").onclick = () => go(idx + 1);
   $("#b-replay").onclick = () => go(idx, true);
