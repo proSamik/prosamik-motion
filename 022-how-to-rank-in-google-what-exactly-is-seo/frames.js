@@ -1,12 +1,15 @@
 /* Storyboard data for issue #22: How to rank in Google, what exactly is SEO?  (v4)
    ---------------------------------------------------------------------------
+   v4.1 rules: rounded elevated cards, every card starts with its title (largest text) and gets
+   smaller below it, no eyebrows or kickers above titles, no middle dots, no production labels on
+   the frame, and on-screen graphics never say the checklist costs nothing (the spoken cue may).
    v4 keeps the v3 script, cues, timings and camera framing, and restyles the plates to
    prosamik.com: white cards, Arial 750 headlines, Caveat hand-written accent words, the
    thumbnail red (#E62117 to #E8590C) only as an accent. Every entrance is choreographed by
    engine.js (GSAP), so a frame only lists WHAT appears; the engine decides HOW it moves.
 
    Camera rule (unchanged): nothing ever goes above his head. Talking-head frames zoom into the
-   left or right part of the camera frame, his face sits off-centre, graphics live on the free side.
+   left or right part of the camera frame, his face sits off-centre, graphics live on the open side.
 
    HOW TO WRITE YOUR OWN (one object per frame):
    {
@@ -23,24 +26,24 @@
      deliver: "How to say it: pause, gesture, look"
    }
    slots on talking-head frames: side, side-top, side-low. They are stacked top to bottom in one
-          column on the free side (centred, 28px apart), so cards never collide with each other,
+          column on the open side (centred, 28px apart), so cards never collide with each other,
           the face or the mic.
    slots on screen-share frames: win (inside the app window), pill (chapter pill above your camera
           box), win-note (hand-written note, place it with style:"left:..px;top:..px")
    slots on cutaways: full, cut-mid.   col-left: a fixed column on the wall (end screen).
-   types: kicker{text}  ("2 · Keywords" renders the number in a red box)
+   types: kicker{text,num}  (chapter title; num renders in a red box)
           headline{text,size:"sm",count}  (count: N counts the [#1] box down from #N to #1)
-          card{eyebrow,title,body,items,ink}   items: ["text" | {t,s,ok}]  ok = tick that pops
+          card{title,body,items,ink,num}  (no eyebrows: the title is always the largest text)   items: ["text" | {t,s,ok}]  ok = tick that pops
           lowerthird{name,role}  search{query} (types on)  flow{steps:[{t,s,hi}],gap}
           chips{items:["!highlighted","plain"]}  note{text,arrow:"up"|"upr"|"down"|"left"}
-          full{text,sub,kicker}  endtiles{}  demo{kind:"serp"|"page"|"console", ...}
+          full{text,sub}  endtiles{tiles:[{t,s}]}  demo{kind:"serp"|"page"|"console", ...}
    text tricks: *word* = Caveat hand-written accent word with a drawn underline,
                 [word] = solid red key-word box that wipes in, \n = new line (each line rises in)
    delay: seconds after the frame starts (use it to land a graphic on a later word in the line)
 */
 window.STORYBOARD = {
   issue: 22,
-  version: 4,
+  version: 4.1,
   title: "How to rank in Google, what exactly is SEO?",
   accent: ["#e62117", "#e8590c"], // from the thumbnail's red "#1" box
   frames: [
@@ -75,9 +78,9 @@ window.STORYBOARD = {
       cue: "By the end you'll know exactly how a page gets ranked, and you get a free checklist to do it.",
       layers: [
         { type: "headline", slot: "side-top", text: "RANK [#1]", count: 9 },
-        { type: "card", slot: "side-low", eyebrow: "Free at the end", title: "SEO checklist", body: "One page. Beginner friendly.", delay: 0.8 }
+        { type: "card", slot: "side-low", title: "SEO checklist", body: "One page, beginner friendly", delay: 0.8 }
       ],
-      onscreen: "Slightly wider look, face on the right. Left: the thumbnail line \"RANK #1\", then a card teasing the free checklist.",
+      onscreen: "Slightly wider look, face on the right. Left: the thumbnail line \"RANK #1\", then a card teasing the SEO checklist.",
       motion: "Headline in, card slides in 0.8s later on \"checklist\".",
       deliver: "Count it off: one hand for \"how it ranks\", the other toward screen-left on \"checklist\"."
     },
@@ -108,10 +111,10 @@ window.STORYBOARD = {
       cam: { shot: "cut" },
       cue: "Show up there, and visitors come to you every day, without paying for ads.",
       layers: [
-        { type: "full", slot: "full", kicker: "How search traffic works", text: "Free visitors, *every* day." },
+        { type: "full", slot: "full", text: "Visitors *every* day,\nwithout ads.", sub: "How search traffic works" },
         { type: "flow", slot: "cut-mid", delay: 0.5, steps: [{ t: "Search" }, { t: "Your page", hi: true }, { t: "Visitor", s: "every day, no ads" }] }
       ],
-      onscreen: "Full-screen white cutaway: Search → Your page → Visitor.",
+      onscreen: "Full-screen white cutaway: \"Visitors every day, without ads.\", then Search → Your page → Visitor.",
       motion: "White frame fades in, then each box slides in 0.22s after the last.",
       deliver: "You're off screen here, so keep the voice warm. Smile on \"without paying for ads\"."
     },
@@ -121,7 +124,7 @@ window.STORYBOARD = {
       cam: { shot: "head", ref: 2, zoom: 1.25, face: "right" },
       cue: "Here's the whole thing in five parts.",
       layers: [
-        { type: "card", slot: "side", eyebrow: "The 5 parts", items: [
+        { type: "card", slot: "side", title: "The 5 parts", items: [
           { t: "How Google works" }, { t: "Keywords" }, { t: "On-page" }, { t: "Off-page" }, { t: "Technical" }
         ] }
       ],
@@ -131,11 +134,11 @@ window.STORYBOARD = {
     },
     // ---------------- STEP 1 ----------------
     {
-      section: "1 · How Google works", time: "0:40",
+      section: "1. How Google works", time: "0:40",
       cam: { shot: "head", ref: 3, zoom: 1.45, face: "left" },
       cue: "Google does three things. It crawls, it indexes, and it ranks.",
       layers: [
-        { type: "kicker", slot: "side-top", text: "1 · How Google works" },
+        { type: "kicker", slot: "side-top", num: 1, text: "How Google works" },
         { type: "flow", slot: "side-low", delay: 0.6, gap: 0.7, steps: [{ t: "Crawl" }, { t: "Index" }, { t: "Rank", hi: true }] }
       ],
       onscreen: "Close, face on the left. Right: chapter 1 pill, then Crawl → Index → Rank.",
@@ -143,7 +146,7 @@ window.STORYBOARD = {
       deliver: "One beat per word. Tap the air three times."
     },
     {
-      section: "1 · How Google works", time: "0:47",
+      section: "1. How Google works", time: "0:47",
       cam: { shot: "screen" },
       cue: "Crawling means Google's bot follows links and reads your pages.",
       layers: [
@@ -155,16 +158,16 @@ window.STORYBOARD = {
       deliver: "Move the mouse over a link while you say \"follows links\"."
     },
     {
-      section: "1 · How Google works", time: "0:53",
+      section: "1. How Google works", time: "0:53",
       cam: { shot: "head", ref: 1, zoom: 1.25, face: "left" },
       cue: "Indexing means it stores what each page is about, like a giant library catalogue.",
-      layers: [{ type: "card", slot: "side", eyebrow: "Index", title: "A *catalogue*", body: "of every page Google understood." }],
-      onscreen: "Back on camera, face on the left. Right: card \"Index: a catalogue of every page Google understood\".",
+      layers: [{ type: "card", slot: "side", title: "A *catalogue*", body: "Google's index of every page it understood" }],
+      onscreen: "Back on camera, face on the left. Right: card \"A catalogue\", with \"Google's index of every page it understood\" below.",
       motion: "Card slides in from the right, underline draws under \"catalogue\".",
       deliver: "Hands shape a big box on \"giant library\". Keep it light."
     },
     {
-      section: "1 · How Google works", time: "1:00",
+      section: "1. How Google works", time: "1:00",
       cam: { shot: "screen" },
       cue: "And ranking means when someone searches, it picks the most useful pages and puts them in order.",
       layers: [{ type: "demo", slot: "win", kind: "serp", query: "how to rank in google", rows: [
@@ -178,7 +181,7 @@ window.STORYBOARD = {
       deliver: "Scroll slowly down the results while you say \"in order\"."
     },
     {
-      section: "1 · How Google works", time: "1:08",
+      section: "1. How Google works", time: "1:08",
       cam: { shot: "screen" },
       cue: "So step zero: check Google can find you. Search site, colon, your domain, and see what shows up.",
       layers: [
@@ -195,31 +198,31 @@ window.STORYBOARD = {
     },
     // ---------------- STEP 2 ----------------
     {
-      section: "2 · Keywords", time: "1:35",
+      section: "2. Keywords", time: "1:35",
       cam: { shot: "head", ref: 2, zoom: 1.25, face: "right" },
       cue: "Keywords are the words people actually type, not the words you'd use.",
       layers: [
-        { type: "kicker", slot: "side-top", text: "2 · Keywords" },
-        { type: "headline", slot: "side-low", text: "Their words,\nnot *yours*." }
+        { type: "headline", slot: "side-top", text: "Their words,\nnot *yours*." },
+        { type: "kicker", slot: "side-low", num: 2, text: "Keywords", delay: 0.5 }
       ],
-      onscreen: "Wider look, face on the right. Left: chapter 2 pill, then \"Their words, not yours.\"",
+      onscreen: "Wider look, face on the right. Left: \"Their words, not yours.\", then the chapter 2 pill below it.",
       motion: "Pill rises, headline slides in, underline under \"yours\".",
       deliver: "Point at the camera on \"people\", at yourself on \"you'd use\"."
     },
     {
-      section: "2 · Keywords", time: "1:42",
+      section: "2. Keywords", time: "1:42",
       cam: { shot: "head", ref: 3, zoom: 1.45, face: "left" },
       cue: "You might call it a caption generator. People actually search: add subtitles to a video.",
       layers: [
-        { type: "card", slot: "side-top", eyebrow: "You say", title: "caption generator" },
-        { type: "card", slot: "side-low", ink: true, eyebrow: "They search", title: "add subtitles to video", delay: 1.4 }
+        { type: "card", slot: "side-top", title: "caption generator", body: "What you call it" },
+        { type: "card", slot: "side-low", ink: true, title: "add subtitles to video", body: "What people search", delay: 1.4 }
       ],
-      onscreen: "Close, face on the left. Right: a white card (what you say), then a black card (what they search).",
+      onscreen: "Close, face on the left. Right: a white card (what you call it), then a card with a red edge (what people search).",
       motion: "Top card in, bottom card lands 1.4s later on \"people actually search\".",
       deliver: "Shrug a little on \"caption generator\", then firm on \"add subtitles\"."
     },
     {
-      section: "2 · Keywords", time: "1:52",
+      section: "2. Keywords", time: "1:52",
       cam: { shot: "head", ref: 1, zoom: 1.45, face: "right" },
       cue: "Pick one main keyword per page, and make that page answer it.",
       layers: [{ type: "headline", slot: "side", text: "1 page\n= 1 *keyword*" }],
@@ -229,11 +232,11 @@ window.STORYBOARD = {
     },
     // ---------------- STEP 3 ----------------
     {
-      section: "3 · On-page", time: "2:15",
+      section: "3. On-page", time: "2:15",
       cam: { shot: "screen" },
       cue: "On-page is everything Google reads on the page itself.",
       layers: [
-        { type: "kicker", slot: "pill", text: "3 · On-page" },
+        { type: "kicker", slot: "pill", num: 3, text: "On-page" },
         { type: "demo", slot: "win", kind: "page", url: "yoursite.com/add-subtitles", title: "How to add subtitles to a video", hl: "title" }
       ],
       onscreen: "Screen share: your page with its title outlined in red. Chapter 3 pill above your camera box.",
@@ -241,10 +244,10 @@ window.STORYBOARD = {
       deliver: "Neutral, explanatory. Hover the title as you say \"the page itself\"."
     },
     {
-      section: "3 · On-page", time: "2:22",
+      section: "3. On-page", time: "2:22",
       cam: { shot: "head", ref: 3, zoom: 1.25, face: "left" },
       cue: "Put the keyword in the title, the main heading, and the first few lines.",
-      layers: [{ type: "card", slot: "side", eyebrow: "Keyword goes in", items: [
+      layers: [{ type: "card", slot: "side", title: "Keyword goes in", items: [
         { t: "Page title", ok: true }, { t: "Main heading (H1)", ok: true }, { t: "First few lines", ok: true }
       ] }],
       onscreen: "Face on the left. Right: checklist card with three ticks.",
@@ -252,7 +255,7 @@ window.STORYBOARD = {
       deliver: "Count on three fingers, one per item."
     },
     {
-      section: "3 · On-page", time: "2:32",
+      section: "3. On-page", time: "2:32",
       cam: { shot: "head", ref: 1, zoom: 1.45, face: "right" },
       cue: "Then actually answer the question better than the pages already ranking.",
       layers: [{ type: "headline", slot: "side", text: "Be the\n*best* answer." }],
@@ -262,11 +265,11 @@ window.STORYBOARD = {
     },
     // ---------------- STEP 4 ----------------
     {
-      section: "4 · Off-page", time: "3:00",
+      section: "4. Off-page", time: "3:00",
       cam: { shot: "head", ref: 3, zoom: 1.25, face: "left" },
       cue: "Off-page is mostly backlinks, other sites linking to yours.",
       layers: [
-        { type: "kicker", slot: "side-top", text: "4 · Off-page" },
+        { type: "kicker", slot: "side-top", num: 4, text: "Off-page" },
         { type: "flow", slot: "side-low", delay: 0.4, steps: [{ t: "Other site" }, { t: "links to" }, { t: "Your page", hi: true }] }
       ],
       onscreen: "Face on the left. Right: chapter 4 pill, then Other site → links to → Your page.",
@@ -274,7 +277,7 @@ window.STORYBOARD = {
       deliver: "Hand moves from far away toward yourself."
     },
     {
-      section: "4 · Off-page", time: "3:08",
+      section: "4. Off-page", time: "3:08",
       cam: { shot: "head", ref: 1, zoom: 1.45, face: "right" },
       cue: "Each link is like a vote of trust. A link from a site people trust counts for more.",
       layers: [
@@ -288,21 +291,20 @@ window.STORYBOARD = {
     },
     // ---------------- STEP 5 ----------------
     {
-      section: "5 · Technical", time: "3:40",
+      section: "5. Technical", time: "3:40",
       cam: { shot: "head", ref: 3, zoom: 1.25, face: "left" },
       cue: "Last, the technical basics. Is it fast? Does it work on mobile?",
       layers: [
-        { type: "kicker", slot: "side-top", text: "5 · Technical" },
-        { type: "card", slot: "side-low", eyebrow: "Check", items: [
+        { type: "card", slot: "side", num: 5, title: "Technical", items: [
           { t: "Loads fast" }, { t: "Works on mobile" }, { t: "Has a sitemap", s: "next video" }
         ], delay: 0.4 }
       ],
-      onscreen: "Face on the left. Right: chapter 5 pill, then three checks, the last one tagged \"next video\".",
-      motion: "Pill rises, card slides in, rows stagger.",
+      onscreen: "Face on the left. Right: one card titled \"Technical\" with the chapter number 5, then three checks, the last one tagged \"next video\".",
+      motion: "Card slides in, title rises, rows stagger.",
       deliver: "Quicker pace here. Phone gesture on \"mobile\"."
     },
     {
-      section: "5 · Technical", time: "3:50",
+      section: "5. Technical", time: "3:50",
       cam: { shot: "screen" },
       cue: "And do you have a sitemap telling Google where every page is? Submit it in Search Console.",
       layers: [
@@ -318,7 +320,7 @@ window.STORYBOARD = {
       section: "Recap", time: "4:15",
       cam: { shot: "head", ref: 2, zoom: 1.25, face: "right" },
       cue: "So: Google crawls, indexes and ranks. You help it with keywords, on-page, off-page and the technical basics.",
-      layers: [{ type: "card", slot: "side", eyebrow: "Recap", items: [
+      layers: [{ type: "card", slot: "side", title: "Recap", items: [
         { t: "How Google works", ok: true }, { t: "Keywords", ok: true }, { t: "On-page", ok: true }, { t: "Off-page", ok: true }, { t: "Technical", ok: true }
       ] }],
       onscreen: "Wider look, face on the right. Left: the five parts, all ticked.",
@@ -331,10 +333,10 @@ window.STORYBOARD = {
       cam: { shot: "head", ref: 3, zoom: 1.45, face: "left" },
       cue: "I put all of this on a one-page beginner SEO checklist. It's free, the link is below.",
       layers: [
-        { type: "card", slot: "side-top", ink: true, eyebrow: "Free download", title: "Beginner SEO\n*checklist*", body: "Link in the description" },
+        { type: "card", slot: "side-top", ink: true, title: "Beginner SEO\n*checklist*", body: "One page, link in the description" },
         { type: "note", slot: "side-low", text: "below", arrow: "down", delay: 1.2 }
       ],
-      onscreen: "Close, face on the left. Right: black card \"Beginner SEO checklist\", hand-written \"below\" with an arrow pointing down.",
+      onscreen: "Close, face on the left. Right: card \"Beginner SEO checklist\" with a red edge, hand-written \"below\" with an arrow pointing down.",
       motion: "Card slides in, arrow draws on \"below\".",
       deliver: "Point down on \"below\". Warm, generous tone."
     },
@@ -344,11 +346,10 @@ window.STORYBOARD = {
       cam: { shot: "head", ref: 3, zoom: 1, face: "center" },
       cue: "Next up, the sitemap: what it is and why Google needs it. Watch that one next.",
       layers: [
-        { type: "kicker", slot: "col-left", style: "top:160px", text: "Up next: what is a sitemap?" },
-        { type: "endtiles", slot: "full", delay: 0.6 }
+        { type: "endtiles", slot: "full", delay: 0.6, tiles: [{ t: "What is a sitemap?", s: "Watch next" }, { t: "Subscribe" }] }
       ],
-      onscreen: "Same take as the last frame, the camera eases back out to your full frame, face centred. End-screen boxes on the wall (left) and the shelf (right), \"Up next\" pill above the left one.",
-      motion: "Camera zooms out over 0.6s, pill rises, end-screen boxes fade in. Hold 10 to 20 seconds.",
+      onscreen: "Same take as the last frame, the camera eases back out to your full frame, face centred. End-screen boxes on the wall (left, titled \"What is a sitemap?\") and the shelf (right, \"Subscribe\").",
+      motion: "Camera zooms out over 0.6s, end-screen boxes fade in. Hold 10 to 20 seconds.",
       deliver: "Point to the left box on \"watch that one\". Then stay still and smile for 5 seconds so the end screen has room."
     }
   ]

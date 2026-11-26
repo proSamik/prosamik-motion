@@ -1,10 +1,10 @@
 /* ProSamik motion storyboard engine, v4.
    Reads window.STORYBOARD (frames.js) and steps frame by frame.
    Camera (unchanged from v3): talking-head frames zoom into the left or right part of the camera
-   frame (face off-centre, graphics on the free side, clear of the face and the mic), screen-share
+   frame (face off-centre, graphics on the open side, clear of the face and the mic), screen-share
    frames switch to the camera-box-plus-app-window layout, cutaways are a full white plate.
    Nothing is ever placed above the head.
-   Motion (new in v4): every frame is a GSAP timeline. Plates slide in from the free side, text lines
+   Motion (new in v4): every frame is a GSAP timeline. Plates slide in from the open side, text lines
    rise through masks, the red key-word box wipes in, hand-written underlines and arrows draw, flow
    nodes cascade, ticks pop, counters count. While a frame holds, the cards drift a few pixels
    (parallax) and the camera pushes 2%. Before the next frame the plates slide back out.
@@ -29,7 +29,7 @@
     document.documentElement.style.setProperty("--c1", SB.accent[0]);
     document.documentElement.style.setProperty("--c2", SB.accent[1]);
   }
-  document.title = SB.title + " · storyboard v" + (SB.version || 4);
+  document.title = "Storyboard v" + (SB.version || 4) + ": " + SB.title;
   $(".title").textContent = SB.title;
 
   const refsRaw = q.get("refs");
@@ -48,11 +48,11 @@
   const PHOTO = null; // set to "photo.jpg" once his still is cleared for the public page
   const lookFor = (ref) => (REFS ? LOOKS[ref] || LOOKS[1] : PHOTO ? LOOKS[2] : STAND);
   const TARGET_X = { right: 1330, left: 590, center: 960 };
-  const CAP_TOP = 858; // caption pill top on talking-head frames (lower third of the frame)
+  const CAP_TOP = 862; // caption pill top on talking-head frames (lower middle of the frame)
 
   function camFor(f) {
     const c = f.cam || { shot: "head", ref: 1, zoom: 1, face: "center" };
-    if (c.shot === "screen") return { shot: "screen", cap: [560, 910, 1844, 1000] };
+    if (c.shot === "screen") return { shot: "screen", capTop: 912 };
     if (c.shot !== "head") return { shot: c.shot };
     const look = lookFor(c.ref);
     let s = c.zoom || 1;
@@ -74,9 +74,7 @@
     const pt = 110;
     let pb = 800;
     if (ml < pr && mr > pl) pb = Math.min(pb, mt - 24);
-    // captions: lower third, on the free side beside the mic, never over the face or the mic
-    const cap = side === "right" ? [96, CAP_TOP, Math.min(fl, ml) - 30, CAP_TOP + 96] : [Math.max(fr, mr) + 30, CAP_TOP, 1824, CAP_TOP + 96];
-    return { shot: "head", c, look, s, tx, ty, side, face: [fl, ft, fr, fb], mic: [ml, mt, mr, Math.min(1080, mb)], pl, pw: pr - pl, pt, ph: pb - pt, cap, fx: tx + s * look.fx, fy: ty + s * look.fy };
+    return { shot: "head", c, look, s, tx, ty, side, face: [fl, ft, fr, fb], mic: [ml, mt, mr, Math.min(1080, mb)], pl, pw: pr - pl, pt, ph: pb - pt, capTop: CAP_TOP, fx: tx + s * look.fx, fy: ty + s * look.fy };
   }
 
   /* ---------- illustrated stand-in (neutral, no real photos) ---------- */
@@ -150,13 +148,10 @@
   };
 
   const R = {
-    kicker: (l) => {
-      const m = String(l.text).match(/^(\d+)\s*·\s*(.+)$/);
-      return `<div class="kicker ${l.flat ? "flat" : ""}">${m ? `<span class="num">${esc(m[1])}</span><span class="kt">${esc(m[2])}</span>` : `<span class="dot"></span><span class="kt">${esc(l.text)}</span>`}</div>`;
-    },
+    kicker: (l) => `<div class="kicker">${l.num != null ? `<span class="num">${esc(l.num)}</span>` : ""}<span class="kt">${esc(l.text)}</span></div>`,
     headline: (l) => `<div class="plate ${l.size === "sm" ? "sm" : ""}"><div class="headline">${rich(l.text)}</div></div>`,
     card: (l) =>
-      `<div class="card ${l.ink ? "ink" : ""}">${l.eyebrow ? `<div class="eyebrow">${esc(l.eyebrow)}</div>` : ""}${l.title ? `<h3>${rich(l.title)}</h3>` : ""}${l.body ? `<p>${inline(l.body)}</p>` : ""}${l.items ? R.list(l) : ""}</div>`,
+      `<div class="card ${l.ink ? "ink" : ""} ${l.items ? "has-list" : ""}">${l.title ? `<div class="ttl">${l.num != null ? `<span class="cnum">${esc(l.num)}</span>` : ""}<h3>${rich(l.title)}</h3></div>` : ""}${l.body ? `<p>${inline(l.body)}</p>` : ""}${l.items ? R.list(l) : ""}</div>`,
     list: (l) =>
       `<ul class="list">${l.items
         .map((it, i) => {
@@ -182,8 +177,8 @@
       return `<div class="note ${dir}">${after ? "" : svg}<span class="txt">${esc(l.text)}</span>${after ? svg : ""}</div>`;
     },
     full: (l) =>
-      `<div class="full"><div class="bg"></div><div class="corners"></div><div class="ruler"><i></i></div>${l.kicker ? R.kicker({ text: l.kicker, flat: true }) : ""}<div class="headline">${rich(l.text)}</div>${l.sub ? `<div class="sub">${esc(l.sub)}</div>` : ""}</div>`,
-    endtiles: () => `<div class="endtile" style="left:150px">Next video<small>end-screen element</small></div><div class="endtile" style="left:1250px">Subscribe<small>end-screen element</small></div>`,
+      `<div class="full"><div class="bg"></div><div class="ruler"><i></i></div><div class="headline">${rich(l.text)}</div>${l.sub ? `<div class="sub">${esc(l.sub)}</div>` : ""}</div>`,
+    endtiles: (l) => (l.tiles || [{ t: "Next video" }, { t: "Subscribe" }]).slice(0, 2).map((o, i) => `<div class="endtile" style="left:${i ? 1250 : 150}px">${esc(o.t)}${o.s ? `<small>${esc(o.s)}</small>` : ""}</div>`).join(""),
     demo: (l) => (DEMO[l.kind] ? DEMO[l.kind](l) : ""),
   };
 
@@ -224,8 +219,8 @@
     headline(c, l, tl, at, dir) { slideIn(c, tl, at, dir); textIn(c, tl, at + 0.1, l); },
     card(c, l, tl, at, dir) {
       slideIn(c, tl, at, dir);
-      const eb = $(".eyebrow", c);
-      if (eb) tl.from(eb, { opacity: 0, y: 12, duration: 0.45, ease: P3 }, at + 0.1);
+      const cn = $(".cnum", c);
+      if (cn) tl.from(cn, { scale: 0.5, opacity: 0, duration: 0.4, ease: P3 }, at + 0.1);
       textIn(c, tl, at + 0.14, l);
       const p = $(".card > p", c);
       if (p) tl.from(p, { opacity: 0, y: 16, duration: 0.5, ease: P3 }, at + 0.3);
@@ -259,16 +254,13 @@
     },
     kicker(c, l, tl, at) {
       tl.from(c, { opacity: 0, y: 22, duration: 0.5, ease: EX }, at);
-      const n = $(".num, .dot", c);
+      const n = $(".num", c);
       if (n) tl.from(n, { scale: 0.5, opacity: 0, duration: 0.4, ease: P3 }, at + 0.1);
     },
     full(c, l, tl, at) {
       tl.from(c, { opacity: 0, duration: 0.3, ease: "power1.out" }, at);
       tl.from($(".bg", c), { opacity: 0, scale: 1.04, duration: 0.9, ease: "power2.out" }, at);
-      tl.from($(".corners", c), { opacity: 0, scale: 1.03, duration: 0.6, ease: EX }, at + 0.1);
       tl.fromTo($(".ruler i", c), { xPercent: -100 }, { xPercent: 0, duration: 9, ease: "none" }, at);
-      const k = $(".kicker", c);
-      if (k) ENTER.kicker(k, l, tl, at + 0.12);
       textIn($(".headline", c), tl, at + 0.2, l);
       const sub = $(".sub", c);
       if (sub) tl.from(sub, { opacity: 0, y: 16, duration: 0.5, ease: P3 }, at + 0.45);
@@ -304,7 +296,6 @@
     stage.style.setProperty("--ref1", `url("${REFS}avatar-1.png")`);
     stage.style.setProperty("--ref2", `url("${REFS}avatar-2.png")`);
     stage.style.setProperty("--ref3", `url("${REFS}avatar-3.png")`);
-    $(".tag").textContent = "Your reference stills · local only";
   } else if (PHOTO) {
     document.body.classList.add("refs", "photo");
     [1, 2, 3].forEach((n) => stage.style.setProperty("--ref" + n, `url("${PHOTO}")`));
@@ -388,21 +379,44 @@
     if (cur.length) out.push(cur);
     return out;
   }
+  /* captions sit in the lower middle of the frame (his reference style). If the pill would touch the
+     face or the mic, it slides sideways only as far as it needs to; if no position fits, it shrinks. */
+  function placeCaption(g) {
+    const sp = capEl.firstChild;
+    const top = g.capTop;
+    const obs = g.shot === "head" ? [g.face, g.mic] : [];
+    const M = 24;
+    for (let fs = 60; fs >= 40; fs -= 4) {
+      capEl.style.fontSize = fs + "px";
+      const w = sp.offsetWidth, h = sp.offsetHeight;
+      const hit = obs.filter((r) => r[1] < top + h + M && r[3] > top - M);
+      const clear = (x) => x >= 96 && x + w <= 1824 && hit.every((r) => x + w <= r[0] - M || x >= r[2] + M);
+      const cands = [960 - w / 2];
+      hit.forEach((r) => cands.push(r[0] - M - w, r[2] + M));
+      const ok = cands.filter(clear).sort((a, b) => Math.abs(a + w / 2 - 960) - Math.abs(b + w / 2 - 960));
+      if (ok.length) {
+        const x = Math.round(ok[0]);
+        Object.assign(capEl.style, { left: x + "px", top: top + "px" });
+        boxEl($(".g-cap"), [x, top, x + w, top + h]);
+        return;
+      }
+    }
+  }
+  let capG = null;
+  // Montserrat may arrive after the first caption is measured: measure again once fonts are ready
+  if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => { if (capG && capEl.firstChild) placeCaption(capG); });
   function runCaptions(f, g) {
+    capG = g;
     capTimers.forEach(clearTimeout);
     capTimers = [];
     capEl.textContent = "";
-    if (!g.cap) { capEl.style.display = "none"; return; }
+    if (g.capTop == null) { capEl.style.display = "none"; return; }
     capEl.style.display = "";
-    const [cl, ct, cr] = g.cap;
-    Object.assign(capEl.style, { left: cl + "px", top: ct + "px", width: cr - cl + "px" });
     let t = STILL || SEEK !== null ? 0 : 150;
     chunks(f.cue).forEach((c) => {
       const put = () => {
-        capEl.style.fontSize = "";
         capEl.innerHTML = `<span>${esc(c.join(" "))}</span>`;
-        const sp = capEl.firstChild, room = cr - cl - 8;
-        if (sp.offsetWidth > room) capEl.style.fontSize = Math.max(40, Math.floor(60 * room / sp.offsetWidth)) + "px";
+        placeCaption(g);
         if (!(STILL || SEEK !== null)) { capEl.classList.remove("pop"); void capEl.offsetWidth; capEl.classList.add("pop"); }
       };
       if (t === 0 && !capEl.textContent) put();
@@ -416,7 +430,6 @@
   function setCamera(g) {
     stage.classList.remove("shot-head", "shot-screen", "shot-cut", "face-left", "face-right", "face-center");
     stage.classList.add("shot-" + g.shot);
-    if (g.cap) boxEl($(".g-cap"), g.cap);
     if (g.shot !== "head") { prevCam = g; return; }
     stage.classList.add("face-" + g.side);
     const sameTake = prevCam && prevCam.shot === "head" && prevCam.c.ref === g.c.ref;
@@ -434,13 +447,16 @@
     prevCam = g;
   }
 
-  function framingLabel(f) {
+  // framing as short stacked lines (no separators): shot, face and zoom, graphics side and look
+  function framingLines(f) {
     const c = f.cam || {};
-    if (c.shot === "screen") return "Screen share";
-    if (c.shot === "cut") return "Cutaway · full screen";
-    const side = c.face === "center" ? "face centred" : `face ${c.face} · graphics ${c.face === "right" ? "left" : "right"}`;
-    return `Talking head · ${side} · zoom ${Math.round((c.zoom || 1) * 100)}% · look ${c.ref}`;
+    if (c.shot === "screen") return ["Screen share", "Camera box left, app right"];
+    if (c.shot === "cut") return ["Cutaway", "Full white screen"];
+    const z = Math.round((c.zoom || 1) * 100);
+    if (c.face === "center") return ["Talking head", `Face centred, zoom ${z}%`, `Look ${c.ref}`];
+    return ["Talking head", `Face ${c.face}, zoom ${z}%`, `Graphics ${c.face === "right" ? "left" : "right"}, look ${c.ref}`];
   }
+  const framingHTML = (f) => framingLines(f).map((t) => `<span class="fl">${esc(t)}</span>`).join("");
 
   function enter(i, replay) {
     const f = frames[i];
@@ -486,7 +502,7 @@
     $("#n-num").textContent = `Frame ${idx + 1}`;
     $("#n-sec").textContent = f.section || "";
     $("#n-time").textContent = f.time || "";
-    $("#n-shot").textContent = framingLabel(f);
+    $("#n-shot").innerHTML = framingHTML(f);
     $("#n-cue").textContent = f.cue;
     $("#n-screen").textContent = f.onscreen || "";
     $("#n-motion").textContent = f.motion || "";
@@ -500,7 +516,7 @@
   // script table on the right: one row per frame, the current one highlighted and kept in view
   const ovScroll = $(".ov-scroll");
   $(".overview tbody").innerHTML = frames
-    .map((f, i) => `<tr data-i="${i}"><td class="n">${i + 1}<small>${esc(f.time || "")}</small></td><td class="cue">“${esc(f.cue)}”</td><td class="fr">${esc(framingLabel(f))}</td><td class="an">${esc(f.onscreen || "")}</td></tr>`)
+    .map((f, i) => `<tr data-i="${i}"><td class="n">${i + 1}<small>${esc(f.time || "")}</small></td><td class="cue">“${esc(f.cue)}”</td><td class="fr">${framingHTML(f)}</td><td class="an">${esc(f.onscreen || "")}</td></tr>`)
     .join("");
   function syncTable(instant) {
     let row = null;
