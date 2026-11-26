@@ -5,7 +5,7 @@
    browser-plus-camera-box layout, cutaways are full-screen white. Captions are burned in
    2-3 words at a time. Nothing is ever placed above the head.
    Keys: Right/Down/Space next, Left/Up back, R replay, C captions, N notes, T table, G guides, F fullscreen.
-   ?refs=../refs/ swaps the illustrated stand-in for local reference stills (never published).
+   ?refs=../refs/ swaps in the local reference stills; the public page shows the illustrated stand-in.
    The same frame data can later drive a Remotion composition (one <Sequence> per frame). */
 (function () {
   const SB = window.STORYBOARD;
@@ -34,18 +34,21 @@
     3: { fx: 970, fy: 370, hw: 190, hh: 300, mic: [620, 720, 1040, 1080] },
   };
   const STAND = { fx: 960, fy: 370, hw: 190, hh: 300, mic: [620, 720, 1040, 1080] };
+  /* the public page uses one approved still of Samik (photo.jpg, taken from look 2) for every look */
+  const PHOTO = null; // set to "photo.jpg" once his still is cleared for the public page
+  const lookFor = (ref) => (REFS ? LOOKS[ref] || LOOKS[1] : PHOTO ? LOOKS[2] : STAND);
   const TARGET_X = { right: 1330, left: 590, center: 960 };
 
   function camFor(f) {
     const c = f.cam || { shot: "head", ref: 1, zoom: 1, face: "center" };
     if (c.shot !== "head") return { shot: c.shot };
-    const look = REFS ? LOOKS[c.ref] || LOOKS[1] : STAND;
-    // the stand-in has one framing, so the slightly wider look 2 is shown with a little less zoom
+    const look = lookFor(c.ref);
     let s = c.zoom || 1;
-    if (!REFS && c.ref === 2) s = Math.max(1, s - 0.1);
+    // the stand-in has one framing, so the slightly wider look 2 is shown with a little less zoom
+    if (!REFS && !PHOTO && c.ref === 2) s = Math.max(1, s - 0.1);
     const side = c.face || "center";
     const tx = clamp(TARGET_X[side] - s * look.fx, 1920 - 1920 * s, 0);
-    const ty = clamp((c.ref === 2 ? 430 : 400) - s * look.fy, 1080 - 1080 * s, 0);
+    const ty = clamp((look === LOOKS[2] ? 430 : 400) - s * look.fy, 1080 - 1080 * s, 0);
     const P = (x, y) => [tx + s * x, ty + s * y];
     const [fl, ft] = P(look.fx - look.hw, look.fy - look.hh);
     const [fr, fb] = P(look.fx + look.hw, look.fy + look.hh);
@@ -164,6 +167,9 @@
     stage.style.setProperty("--ref2", `url("${REFS}avatar-2.png")`);
     stage.style.setProperty("--ref3", `url("${REFS}avatar-3.png")`);
     $(".tag").textContent = "Your reference stills · local only";
+  } else if (PHOTO) {
+    document.body.classList.add("refs", "photo");
+    [1, 2, 3].forEach((n) => stage.style.setProperty("--ref" + n, `url("${PHOTO}")`));
   }
   const capEl = $(".caption");
   let idx = 0, current = null, prevCam = null, capTimers = [];
@@ -216,7 +222,7 @@
     }
     let t = 150;
     chunks(f.cue).forEach((c) => {
-      capTimers.push(setTimeout(() => { capEl.textContent = c.join(" "); capEl.classList.remove("pop"); void capEl.offsetWidth; capEl.classList.add("pop"); }, t));
+      capTimers.push(setTimeout(() => { capEl.innerHTML = `<span>${esc(c.join(" "))}</span>`; capEl.classList.remove("pop"); void capEl.offsetWidth; capEl.classList.add("pop"); }, t));
       t += (0.32 * c.length + 0.1) * 1000;
     });
   }
@@ -233,7 +239,7 @@
     camwrap.style.transform = `translate(${g.tx}px,${g.ty}px) scale(${g.s})`;
     camwrap.dataset.ref = g.c.ref;
     // slow 2% push toward the face so the frame never sits dead still
-    const look = REFS ? LOOKS[g.c.ref] || LOOKS[1] : STAND;
+    const look = lookFor(g.c.ref);
     drift.style.transformOrigin = `${look.fx}px ${look.fy}px`;
     drift.classList.remove("on"); void drift.offsetWidth; drift.classList.add("on");
     stage.style.setProperty("--pl", g.pl + "px");

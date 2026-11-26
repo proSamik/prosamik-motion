@@ -11,6 +11,7 @@
   --inout: cubic-bezier(0.77,0,0.175,1); /* camera moves */
 }
 *{box-sizing:border-box}
+html{color-scheme:only light}
 html,body{margin:0;background:var(--ui-bg);color:var(--ink);font-family:var(--sans);-webkit-font-smoothing:antialiased}
 button{font:inherit;color:inherit}
 
@@ -218,7 +219,7 @@ body.refs .refimg{display:block}
 .endtile{position:absolute;top:330px;width:520px;height:292px;border:2px dashed #ffffffaa;background:#0003;border-radius:8px;display:grid;place-items:center;color:#fff;font-size:26px}
 
 /* ---------- screen share ---------- */
-.ss{position:absolute;inset:0;display:none;background:radial-gradient(900px 700px at 15% 85%,#e85d75 0%,transparent 60%),radial-gradient(1000px 800px at 85% 10%,#5b7fd6 0%,transparent 60%),linear-gradient(135deg,#f3a25c,#e8707d 50%,#7d8fe0)}
+.ss{position:absolute;inset:0;display:none;background:#f5f5f3}
 .shot-screen .ss{display:block}
 .ss-cam{position:absolute;left:34px;top:150px;width:466px;height:780px;border-radius:24px;overflow:hidden;box-shadow:0 20px 50px -20px #0009;background:#222}
 .ss-cam .mini{position:absolute;left:0;top:0;width:1920px;height:1080px;transform-origin:0 0;transform:translate(-967px,-132px) scale(1.25)}
@@ -316,3 +317,38 @@ body.guides .shot-head .g{display:block}
 body.green .camwrap,body.green .tag,body.green .ss{display:none}
 body.green .stage{background:#00b140}
 body.green .viewport{border-radius:0}
+
+/* ---------- white, clean, inviting (Samik, Nov 26): every piece of on-screen text sits on white
+   or a solid pill, key words in a thumbnail-red box, nothing ever reads straight off the room ---------- */
+.mark{background:#E62117;color:#fff;-webkit-text-fill-color:#fff;border-radius:10px;padding:0 .14em}
+/* headlines on camera: white card, dark text */
+.shot-head .headline:not(.dark){display:inline-block;width:fit-content;background:#fff;color:#111;text-shadow:none;padding:.16em .34em .22em;border-radius:16px;box-shadow:0 18px 50px -18px #000a}
+.shot-head .hand.light{background:linear-gradient(90deg,#E62117,#E8590C);-webkit-background-clip:text;background-clip:text}
+/* hand-written notes: white card, dark hand-written text, red arrow (camera and screen share) */
+.note,.note.grad{display:inline-block;background:#fff;-webkit-background-clip:border-box;background-clip:border-box;color:#111;-webkit-text-fill-color:#111;padding:.12em .42em .2em;border-radius:14px;box-shadow:0 14px 40px -16px #000a}
+.shot-screen .note{color:#111;border:2px solid #111}
+.note svg path,.shot-screen .note svg path{stroke:#E62117}
+/* flows on camera sit on one white plate */
+.shot-head .flow{background:#fff;padding:18px;border-radius:16px;box-shadow:0 18px 50px -18px #000a;width:fit-content}
+.shot-head .flow .arr{background:#111}
+.shot-head .flow .arr::after{border-left-color:#111}
+/* the highlighted item is the red box, not black */
+.flow .node.hi,.chips span.hi{background:#E62117;border-color:#E62117;color:#fff}
+.flow .node.hi small{color:#ffe1dc}
+.chips span{border-color:#d9d9d9;box-shadow:0 10px 30px -14px #0009;color:#222}
+/* the "ink" card becomes a white card with a red bar, so the frame stays white */
+.card.ink{background:#fff;color:#111;border-color:#171717;box-shadow:inset 10px 0 0 #E62117,0 24px 60px -24px #000a}
+.card.ink p{color:#333}.card.ink .eyebrow{color:#E62117}
+.kicker{border:1px solid #e2e2e2}
+/* end screen placeholders on white */
+.endtile{background:#ffffffe6;color:#111;border-color:#111}
+/* captions: white pill, black text on camera; black pill on screen share (the window is white) */
+.caption{text-shadow:none}
+.caption span{background:#fff;color:#111;padding:.06em .32em .12em;border-radius:16px;-webkit-box-decoration-break:clone;box-decoration-break:clone;box-shadow:0 12px 34px -12px #000b}
+.shot-screen .caption span{background:#111;color:#fff}
+/* screen share: near-white desk around the window */
+.ss-window{border:1px solid #e2e2e2;box-shadow:0 30px 70px -34px #0006}
+.ss-cam{box-shadow:0 20px 50px -24px #0007}
+/* public page: his approved still, no stand-in label */
+body.photo .tag{display:none}
+body.photo .ss-cam .mini{background-position:-1109px -235px}
