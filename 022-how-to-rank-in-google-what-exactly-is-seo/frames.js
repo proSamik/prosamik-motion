@@ -43,7 +43,7 @@
 */
 window.STORYBOARD = {
   issue: 22,
-  version: 4.5,
+  version: 4.6,
   title: "How to rank in Google, what exactly is SEO?",
   accent: ["#e62117", "#e8590c"], // from the thumbnail's red "#1" box
   frames: [
