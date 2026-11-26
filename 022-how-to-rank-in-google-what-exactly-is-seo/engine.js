@@ -1,27 +1,37 @@
-/* ProSamik motion storyboard engine, v3.
+/* ProSamik motion storyboard engine, v4.
    Reads window.STORYBOARD (frames.js) and steps frame by frame.
-   v3 follows the real camera: talking-head frames zoom into the left or right part of the
-   camera frame (face off-centre, animation on the free side), screen-share frames switch to the
-   browser-plus-camera-box layout, cutaways are full-screen white. Captions are burned in
-   2-3 words at a time. Nothing is ever placed above the head.
+   Camera (unchanged from v3): talking-head frames zoom into the left or right part of the camera
+   frame (face off-centre, graphics on the free side, clear of the face and the mic), screen-share
+   frames switch to the camera-box-plus-app-window layout, cutaways are a full white plate.
+   Nothing is ever placed above the head.
+   Motion (new in v4): every frame is a GSAP timeline. Plates slide in from the free side, text lines
+   rise through masks, the red key-word box wipes in, hand-written underlines and arrows draw, flow
+   nodes cascade, ticks pop, counters count. While a frame holds, the cards drift a few pixels
+   (parallax) and the camera pushes 2%. Before the next frame the plates slide back out.
+   Without GSAP, or with prefers-reduced-motion, every frame simply lands in its final state.
    Keys: Right/Down/Space next, Left/Up back, R replay, C captions, N notes, T table, G guides, F fullscreen.
-   ?refs=../refs/ swaps in the local reference stills; the public page shows the illustrated stand-in.
-   The same frame data can later drive a Remotion composition (one <Sequence> per frame). */
+   ?refs=../refs/ swaps in the local reference stills; the public page shows the illustrated stand-in. */
 (function () {
   const SB = window.STORYBOARD;
   const frames = SB.frames;
   const $ = (s, r = document) => r.querySelector(s);
+  const $$ = (s, r = document) => Array.from(r.querySelectorAll(s));
   const esc = (s) => String(s ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
   const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+  const RM = window.matchMedia ? matchMedia("(prefers-reduced-motion: reduce)") : { matches: false };
+  const q = new URLSearchParams(location.search);
+  // ?still: every frame lands in its final state (stills / review). ?seek=0.4: freeze each frame at 0.4s.
+  const STILL = q.has("still");
+  const SEEK = q.has("seek") ? Math.max(0, parseFloat(q.get("seek")) || 0) : null;
+  const motion = () => !!window.gsap && !RM.matches && !STILL;
 
   if (SB.accent) {
     document.documentElement.style.setProperty("--c1", SB.accent[0]);
     document.documentElement.style.setProperty("--c2", SB.accent[1]);
   }
-  document.title = SB.title + " · storyboard";
+  document.title = SB.title + " · storyboard v" + (SB.version || 4);
   $(".title").textContent = SB.title;
 
-  const q = new URLSearchParams(location.search);
   const refsRaw = q.get("refs");
   const REFS = refsRaw && /^[\w.\-/]+\/$/.test(refsRaw) && !refsRaw.includes("//") ? refsRaw : null;
 
@@ -38,9 +48,11 @@
   const PHOTO = null; // set to "photo.jpg" once his still is cleared for the public page
   const lookFor = (ref) => (REFS ? LOOKS[ref] || LOOKS[1] : PHOTO ? LOOKS[2] : STAND);
   const TARGET_X = { right: 1330, left: 590, center: 960 };
+  const CAP_TOP = 858; // caption pill top on talking-head frames (lower third of the frame)
 
   function camFor(f) {
     const c = f.cam || { shot: "head", ref: 1, zoom: 1, face: "center" };
+    if (c.shot === "screen") return { shot: "screen", cap: [560, 910, 1844, 1000] };
     if (c.shot !== "head") return { shot: c.shot };
     const look = lookFor(c.ref);
     let s = c.zoom || 1;
@@ -58,7 +70,13 @@
     if (side === "right") { pl = 100; pr = fl - 60; }
     else if (side === "left") { pl = fr + 60; pr = 1820; }
     else { pl = 100; pr = fl - 50; }
-    return { shot: "head", c, look, s, tx, ty, side, face: [fl, ft, fr, fb], mic: [ml, mt, mr, Math.min(1080, mb)], pl, pw: pr - pl, fx: tx + s * look.fx, fy: ty + s * look.fy, colR: fr + 50 };
+    // graphics column: from the safe top down to the caption band, and never into the mic
+    const pt = 110;
+    let pb = 800;
+    if (ml < pr && mr > pl) pb = Math.min(pb, mt - 24);
+    // captions: lower third, on the free side beside the mic, never over the face or the mic
+    const cap = side === "right" ? [96, CAP_TOP, Math.min(fl, ml) - 30, CAP_TOP + 96] : [Math.max(fr, mr) + 30, CAP_TOP, 1824, CAP_TOP + 96];
+    return { shot: "head", c, look, s, tx, ty, side, face: [fl, ft, fr, fb], mic: [ml, mt, mr, Math.min(1080, mb)], pl, pw: pr - pl, pt, ph: pb - pt, cap, fx: tx + s * look.fx, fy: ty + s * look.fy };
   }
 
   /* ---------- illustrated stand-in (neutral, no real photos) ---------- */
@@ -101,16 +119,25 @@
   </svg>`;
 
   /* ---------- text helpers ---------- */
-  const UNDER = '<svg viewBox="0 0 100 20" preserveAspectRatio="none"><path d="M2 14 C 25 6, 60 4, 98 10"/></svg>';
-  const rich = (s, light) =>
-    esc(s).replace(/\[(.+?)\]/g, '<span class="mark">$1</span>').replace(/\*(.+?)\*/g, (_, w) => `<span class="hand${light ? " light" : ""}">${w}${UNDER}</span>`).replace(/\n/g, "<br>");
-
+  const UNDER = '<svg viewBox="0 0 100 20" preserveAspectRatio="none" aria-hidden="true"><path pathLength="1" d="M2 14 C 25 6, 60 4, 98 10"/></svg>';
+  const inline = (s) => esc(s).replace(/\[(.+?)\]/g, '<span class="mark">$1</span>').replace(/\*(.+?)\*/g, (_, w) => `<span class="hand">${w}${UNDER}</span>`);
+  const rich = (s) => String(s ?? "").split("\n").map((ln) => `<span class="ln"><span class="li">${inline(ln)}</span></span>`).join("");
   const lines = (ws) => ws.map((w) => `<div class="l" style="width:${w}%"></div>`).join("");
+  const MAG = '<svg class="mag" viewBox="0 0 24 24" aria-hidden="true"><circle cx="10" cy="10" r="7" fill="none" stroke="#6b6b6b" stroke-width="2.4"/><path d="M15.5 15.5 22 22" stroke="#6b6b6b" stroke-width="2.4" stroke-linecap="round"/></svg>';
+  const TICK = '<svg viewBox="0 0 24 24" aria-hidden="true"><path pathLength="1" d="M6 12.5l4 4 8-9"/></svg>';
+  const ARR = '<svg class="arr" viewBox="0 0 44 22" aria-hidden="true"><path pathLength="1" d="M3 11 H39 M30 3 L40 11 L30 19"/></svg>';
+  const NOTE_ARROWS = {
+    up: { vb: "0 0 90 80", d: "M84 70 C 50 68, 24 52, 20 10 M20 10 L 8 26 M20 10 L 34 22" },
+    down: { vb: "0 0 70 110", d: "M22 6 C 18 40, 28 70, 40 100 M40 100 L 22 90 M40 100 L 46 80" },
+    upr: { vb: "0 0 90 80", d: "M6 70 C 40 68, 66 52, 70 10 M70 10 L 82 26 M70 10 L 56 22" },
+    left: { vb: "0 0 130 70", d: "M124 44 C 92 58, 50 52, 12 20 M12 20 L 34 20 M12 20 L 18 42" },
+  };
+
   const DEMO = {
     serp: (l) =>
-      `<div class="d-serp"><div class="d-q ${l.hl === "query" ? "hl" : ""}"><svg viewBox="0 0 24 24"><circle cx="10" cy="10" r="7" fill="none" stroke="#6b6b6b" stroke-width="2.4"/><path d="M15.5 15.5 22 22" stroke="#6b6b6b" stroke-width="2.4" stroke-linecap="round"/></svg>${esc(l.query)}</div>
+      `<div class="d-serp"><div class="d-q ${l.hl === "query" ? "hl" : ""}">${MAG}${esc(l.query)}</div>
        <div class="d-tabs"><b>All</b><span>Images</span><span>Videos</span><span>News</span></div>
-       ${l.rows.map((r, i) => `<div class="d-row ${r.me ? "me" : ""}" style="--i:${i}"><div class="u">${esc(r.url)}</div><div class="t">${esc(r.t)}</div>${lines([88, 64])}</div>`).join("")}</div>`,
+       ${l.rows.map((r, i) => `<div class="d-row ${r.me ? "me hl" : ""}">${r.me ? `<span class="pos">#${i + 1}</span>` : ""}<div class="u">${esc(r.url)}</div><div class="t">${esc(r.t)}</div>${lines([88, 64])}</div>`).join("")}</div>`,
     page: (l) =>
       `<div class="d-page"><div class="nav"><b>${esc((l.url || "yoursite.com").split("/")[0])}</b><span>Blog</span><span>Pricing</span><span>About</span></div>
        <div class="art"><h1 class="${l.hl === "title" ? "hl" : ""}">${esc(l.title || "Page title")}</h1>
@@ -119,41 +146,152 @@
     console: (l) =>
       `<div class="d-con"><aside><b>Search Console</b><span>Overview</span><span>Performance</span><span>URL inspection</span><span class="on">Sitemaps</span><span>Pages</span></aside>
        <main><h2>Sitemaps</h2><div class="box"><div class="lbl">Add a new sitemap</div><div class="inrow"><div class="in"><i>https://${esc(l.site)}/</i>${esc(l.sitemap)}</div><div class="btn hl">Submit</div></div></div>
-       <div class="box"><div class="lbl">Submitted sitemaps</div><div class="tr th"><span>Sitemap</span><span>Status</span><span>Pages found</span></div><div class="tr ok"><span>/${esc(l.sitemap)}</span><span class="good">Success</span><span>24</span></div></div></main></div>`,
+       <div class="box"><div class="lbl">Submitted sitemaps</div><div class="tr th"><span>Sitemap</span><span>Status</span><span>Pages found</span></div><div class="tr ok"><span>/${esc(l.sitemap)}</span><span class="good">Success</span><span class="cnt" data-n="24">24</span></div></div></main></div>`,
   };
 
   const R = {
-    kicker: (l) => `<div class="kicker"><i></i>${esc(l.text)}</div>`,
-    headline: (l) => `<div class="headline ${l.size || ""} ${l.dark ? "dark" : ""}">${rich(l.text)}</div>`,
+    kicker: (l) => {
+      const m = String(l.text).match(/^(\d+)\s*·\s*(.+)$/);
+      return `<div class="kicker ${l.flat ? "flat" : ""}">${m ? `<span class="num">${esc(m[1])}</span><span class="kt">${esc(m[2])}</span>` : `<span class="dot"></span><span class="kt">${esc(l.text)}</span>`}</div>`;
+    },
+    headline: (l) => `<div class="plate ${l.size === "sm" ? "sm" : ""}"><div class="headline">${rich(l.text)}</div></div>`,
     card: (l) =>
-      `<div class="card ${l.ink ? "ink" : ""}">${l.eyebrow ? `<div class="eyebrow">${esc(l.eyebrow)}</div>` : ""}${
-        l.title ? `<h3>${rich(l.title)}</h3>` : ""
-      }${l.body ? `<p>${rich(l.body)}</p>` : ""}${l.items ? R.list(l) : ""}</div>`,
+      `<div class="card ${l.ink ? "ink" : ""}">${l.eyebrow ? `<div class="eyebrow">${esc(l.eyebrow)}</div>` : ""}${l.title ? `<h3>${rich(l.title)}</h3>` : ""}${l.body ? `<p>${inline(l.body)}</p>` : ""}${l.items ? R.list(l) : ""}</div>`,
     list: (l) =>
       `<ul class="list">${l.items
         .map((it, i) => {
           const o = typeof it === "string" ? { t: it } : it;
-          return `<li style="--i:${i}"><span class="n ${o.ok ? "ok" : ""}">${o.ok ? "✓" : i + 1}</span><span>${esc(o.t)}${o.s ? `<small>${esc(o.s)}</small>` : ""}</span></li>`;
+          return `<li><span class="n ${o.ok ? "ok" : ""}">${o.ok ? TICK : i + 1}</span><span class="t">${esc(o.t)}${o.s ? `<small>${esc(o.s)}</small>` : ""}</span></li>`;
         })
         .join("")}</ul>`,
-    lowerthird: (l) => `<div class="lt"><div class="bar"></div><div class="txt"><div class="name">${esc(l.name)}</div><div class="role">${esc(l.role)}</div></div></div>`,
-    search: (l) =>
-      `<div class="search" style="--chars:${l.query.length}"><svg class="mag" viewBox="0 0 24 24"><circle cx="10" cy="10" r="7" fill="none" stroke="#6b6b6b" stroke-width="2.4"/><path d="M15.5 15.5 22 22" stroke="#6b6b6b" stroke-width="2.4" stroke-linecap="round"/></svg><div class="q">${esc(l.query)}</div></div>`,
+    lowerthird: (l) => `<div class="lt"><div class="bar"></div><div class="txt"><div class="name">${rich(l.name)}</div><div class="role">${esc(l.role)}</div></div></div>`,
+    search: (l) => `<div class="search">${MAG}<span class="q">${esc(l.query)}</span><span class="caret"></span></div>`,
     flow: (l) =>
       `<div class="flow">${l.steps
         .map((s, i) => {
           const o = typeof s === "string" ? { t: s } : s;
-          return `${i ? `<span class="arr" style="--i:${i}"></span>` : ""}<div class="node ${o.hi ? "hi" : ""}" style="--i:${i}">${esc(o.t)}${o.s ? `<small>${esc(o.s)}</small>` : ""}</div>`;
+          return `${i ? ARR : ""}<div class="node ${o.hi ? "hi" : ""}">${esc(o.t)}${o.s ? `<small>${esc(o.s)}</small>` : ""}</div>`;
         })
         .join("")}</div>`,
-    chips: (l) => `<div class="chips">${l.items.map((c, i) => `<span class="${c.startsWith("!") ? "hi" : ""}" style="--i:${i}">${esc(c.replace(/^!/, ""))}</span>`).join("")}</div>`,
-    note: (l) =>
-      `<div class="note">${esc(l.text)}<svg viewBox="0 0 180 90" style="${l.down ? "transform:rotate(60deg) translate(10px,-30px)" : l.flip ? "transform:scaleX(-1)" : ""}"><path d="M10 10 C 60 20, 120 30, 160 75 M160 75 l-26 -4 M160 75 l-2 -26"/></svg></div>`,
-    full: (l) => `<div class="full">${l.kicker ? `<div class="kicker flat"><i></i>${esc(l.kicker)}</div>` : ""}<div class="headline">${rich(l.text)}</div>${l.sub ? `<div class="sub">${esc(l.sub)}</div>` : ""}</div>`,
-    endtiles: () => `<div class="endtile" style="left:150px">Next video</div><div class="endtile" style="left:1250px">Subscribe</div>`,
+    chips: (l) => `<div class="chips">${l.items.map((c) => `<span class="${c.startsWith("!") ? "hi" : ""}">${esc(c.replace(/^!/, ""))}</span>`).join("")}</div>`,
+    note: (l) => {
+      const dir = l.arrow || (l.down ? "down" : l.flip ? "left" : "up");
+      const a = NOTE_ARROWS[dir] || NOTE_ARROWS.up;
+      const svg = `<svg viewBox="${a.vb}" aria-hidden="true"><path class="k" pathLength="1" d="${a.d}"/><path class="r" pathLength="1" d="${a.d}"/></svg>`;
+      const after = dir === "down" || dir === "upr";
+      return `<div class="note ${dir}">${after ? "" : svg}<span class="txt">${esc(l.text)}</span>${after ? svg : ""}</div>`;
+    },
+    full: (l) =>
+      `<div class="full"><div class="bg"></div><div class="corners"></div><div class="ruler"><i></i></div>${l.kicker ? R.kicker({ text: l.kicker, flat: true }) : ""}<div class="headline">${rich(l.text)}</div>${l.sub ? `<div class="sub">${esc(l.sub)}</div>` : ""}</div>`,
+    endtiles: () => `<div class="endtile" style="left:150px">Next video<small>end-screen element</small></div><div class="endtile" style="left:1250px">Subscribe<small>end-screen element</small></div>`,
     demo: (l) => (DEMO[l.kind] ? DEMO[l.kind](l) : ""),
   };
-  const DEFAULT_ANIM = { kicker: "a-up", lowerthird: "a-wipe", search: "a-up", full: "a-fade", note: "a-fade", flow: "a-fade", chips: "a-fade", endtiles: "a-fade", demo: "a-cut" };
+
+  /* ---------- choreography ----------
+     One timeline per frame. Arrivals: expo/power3 ease-out, 0.35-0.62s each, no overshoot. */
+  const EX = "expo.out", P3 = "power3.out";
+  const draw = (tl, paths, at, dur = 0.5, stagger = 0) => paths.length && tl.fromTo(paths, { strokeDashoffset: 1 }, { strokeDashoffset: 0, duration: dur, ease: "power2.out", stagger }, at);
+
+  function textIn(c, tl, at, l) {
+    const li = $$(".li", c);
+    if (li.length) tl.from(li, { yPercent: 112, duration: 0.62, ease: EX, stagger: 0.08 }, at);
+    const end = at + 0.08 * Math.max(0, li.length - 1);
+    $$(".mark", c).forEach((m, i) => {
+      tl.fromTo(m, { clipPath: "inset(0% 100% 0% 0%)" }, { clipPath: "inset(0% 0% 0% 0%)", duration: 0.5, ease: P3 }, end + 0.25 + i * 0.12);
+      const target = m.textContent.match(/^#(\d+)$/);
+      if (l && l.count && target) {
+        const o = { n: l.count };
+        m.textContent = "#" + l.count;
+        tl.to(o, { n: +target[1], duration: 0.9, ease: "power2.out", onUpdate: () => (m.textContent = "#" + Math.round(o.n)) }, end + 0.3);
+      }
+    });
+    draw(tl, $$(".hand path", c), end + 0.38, 0.55);
+  }
+  function listIn(c, tl, at) {
+    const rows = $$(".list li", c);
+    if (!rows.length) return;
+    tl.from(rows, { opacity: 0, y: 18, duration: 0.45, ease: P3, stagger: 0.07 }, at);
+    rows.forEach((r, i) => {
+      const ok = $(".n.ok", r);
+      if (!ok) return;
+      tl.from(ok, { scale: 0.55, opacity: 0, duration: 0.35, ease: P3 }, at + 0.12 + i * 0.07);
+      draw(tl, $$("path", ok), at + 0.2 + i * 0.07, 0.3);
+    });
+  }
+  const slideIn = (c, tl, at, dir, extra = {}) => tl.from(c, { opacity: 0, x: dir * 64, duration: 0.6, ease: EX, ...extra }, at);
+
+  const ENTER = {
+    headline(c, l, tl, at, dir) { slideIn(c, tl, at, dir); textIn(c, tl, at + 0.1, l); },
+    card(c, l, tl, at, dir) {
+      slideIn(c, tl, at, dir);
+      const eb = $(".eyebrow", c);
+      if (eb) tl.from(eb, { opacity: 0, y: 12, duration: 0.45, ease: P3 }, at + 0.1);
+      textIn(c, tl, at + 0.14, l);
+      const p = $(".card > p", c);
+      if (p) tl.from(p, { opacity: 0, y: 16, duration: 0.5, ease: P3 }, at + 0.3);
+      listIn(c, tl, at + 0.22);
+    },
+    lowerthird(c, l, tl, at, dir) {
+      slideIn(c, tl, at, dir);
+      tl.from($(".bar", c), { scaleY: 0, duration: 0.5, ease: EX }, at + 0.08);
+      textIn(c, tl, at + 0.14, l);
+      tl.from($(".role", c), { opacity: 0, y: 14, duration: 0.45, ease: P3 }, at + 0.28);
+    },
+    search(c, l, tl, at) {
+      tl.from(c, { opacity: 0, y: 28, duration: 0.55, ease: EX }, at);
+      const qEl = $(".q", c), text = l.query, o = { n: 0 };
+      qEl.textContent = "";
+      tl.to(o, { n: text.length, duration: text.length * 0.05, ease: "none", onUpdate: () => (qEl.textContent = text.slice(0, Math.round(o.n))) }, at + 0.35);
+    },
+    flow(c, l, tl, at, dir, g) {
+      const gap = l.gap || 0.22;
+      const vertical = g.shot === "cut";
+      tl.from(c, { opacity: 0, [vertical ? "y" : "x"]: vertical ? 30 : dir * 48, duration: 0.55, ease: EX }, at);
+      $$(".node", c).forEach((n, i) => tl.from(n, { opacity: 0, y: 18, duration: 0.45, ease: P3 }, at + 0.08 + i * gap));
+      $$(".arr path", c).forEach((p, i) => draw(tl, [p], at + 0.08 + (i + 1) * gap - 0.14, 0.32));
+    },
+    chips(c, l, tl, at) {
+      tl.from($$("span", c), { opacity: 0, y: 18, scale: 0.96, duration: 0.45, ease: P3, stagger: 0.07 }, at);
+    },
+    note(c, l, tl, at) {
+      tl.from($(".txt", c), { opacity: 0, y: 12, rotation: -7, duration: 0.45, ease: P3 }, at);
+      draw(tl, $$("path", c), at + 0.12, 0.5);
+    },
+    kicker(c, l, tl, at) {
+      tl.from(c, { opacity: 0, y: 22, duration: 0.5, ease: EX }, at);
+      const n = $(".num, .dot", c);
+      if (n) tl.from(n, { scale: 0.5, opacity: 0, duration: 0.4, ease: P3 }, at + 0.1);
+    },
+    full(c, l, tl, at) {
+      tl.from(c, { opacity: 0, duration: 0.3, ease: "power1.out" }, at);
+      tl.from($(".bg", c), { opacity: 0, scale: 1.04, duration: 0.9, ease: "power2.out" }, at);
+      tl.from($(".corners", c), { opacity: 0, scale: 1.03, duration: 0.6, ease: EX }, at + 0.1);
+      tl.fromTo($(".ruler i", c), { xPercent: -100 }, { xPercent: 0, duration: 9, ease: "none" }, at);
+      const k = $(".kicker", c);
+      if (k) ENTER.kicker(k, l, tl, at + 0.12);
+      textIn($(".headline", c), tl, at + 0.2, l);
+      const sub = $(".sub", c);
+      if (sub) tl.from(sub, { opacity: 0, y: 16, duration: 0.5, ease: P3 }, at + 0.45);
+    },
+    endtiles(c, l, tl, at) {
+      tl.from($$(".endtile", c), { opacity: 0, y: 24, scale: 0.98, duration: 0.55, ease: EX, stagger: 0.12 }, at);
+    },
+    demo(c, l, tl, at) {
+      const rows = $$(".d-row, .d-page .art > *, .d-con .box", c);
+      if (rows.length) tl.from(rows, { opacity: 0, y: 16, duration: 0.45, ease: P3, stagger: 0.07 }, at + 0.05);
+      const rings = $$(".hl", c);
+      if (rings.length)
+        tl.fromTo(rings, { boxShadow: "0 0 0 6px rgba(255,255,255,0), 0 0 0 6px rgba(230,33,23,0)" }, { boxShadow: "0 0 0 6px rgba(255,255,255,1), 0 0 0 10px rgba(230,33,23,1)", duration: 0.4, ease: P3, stagger: 0.08 }, at + 0.7);
+      const pos = $(".pos", c);
+      if (pos) tl.from(pos, { opacity: 0, scale: 0.6, duration: 0.35, ease: P3 }, at + 0.8);
+      const ok = $(".tr.ok", c);
+      if (ok) {
+        tl.from(ok, { opacity: 0, y: 10, duration: 0.45, ease: P3 }, at + 1.6);
+        const cnt = $(".cnt", ok), o = { n: 0 }, N = +cnt.dataset.n;
+        tl.to(o, { n: N, duration: 0.8, ease: "power2.out", onUpdate: () => (cnt.textContent = Math.round(o.n)) }, at + 1.7);
+      }
+    },
+  };
 
   /* ---------- stage setup ---------- */
   const stage = $(".stage");
@@ -172,28 +310,72 @@
     [1, 2, 3].forEach((n) => stage.style.setProperty("--ref" + n, `url("${PHOTO}")`));
   }
   const capEl = $(".caption");
-  let idx = 0, current = null, prevCam = null, capTimers = [];
+  let idx = 0, current = null, prevCam = null, capTimers = [], tl = null, ambient = [], pending = null, curDir = 1;
 
   function fit() {
     stage.style.transform = `scale(${$(".viewport").clientWidth / 1920})`;
   }
   window.addEventListener("resize", fit);
 
-  function build(f) {
+  const SLOT_ORDER = { "side-top": 0, side: 1, "side-low": 2 };
+  function build(f, g) {
     const box = document.createElement("div");
     box.className = "layers";
-    (f.layers || []).forEach((l) => {
+    let grp = null;
+    if (g.shot === "head") {
+      const st = document.createElement("div");
+      st.className = "stack";
+      st.innerHTML = '<div class="grp"></div>';
+      box.appendChild(st);
+      grp = st.firstChild;
+    }
+    const ls = (f.layers || []).map((l, i) => ({ l, i }));
+    ls.sort((a, b) => (SLOT_ORDER[a.l.slot || "side"] ?? 9) - (SLOT_ORDER[b.l.slot || "side"] ?? 9) || a.i - b.i);
+    ls.forEach(({ l }) => {
+      const slot = l.slot || "side";
+      const inStack = grp && slot in SLOT_ORDER;
       const el = document.createElement("div");
-      el.className = `L t-${l.type} ${l.anim || DEFAULT_ANIM[l.type] || "a-in"} s-${l.slot || "side"}`;
-      el.style.setProperty("--d", (l.delay || 0) + "s");
-      if (l.style) el.setAttribute("style", el.getAttribute("style") + ";" + l.style);
-      el.innerHTML = R[l.type] ? R[l.type](l) : `<div class="card"><p>Unknown layer: ${esc(l.type)}</p></div>`;
-      box.appendChild(el);
+      el.className = `L t-${l.type}` + (inStack ? "" : ` s-${slot}`);
+      if (l.style && !inStack) el.setAttribute("style", l.style);
+      el.innerHTML = `<div class="c">${R[l.type] ? R[l.type](l) : `<div class="card"><p>Unknown layer: ${esc(l.type)}</p></div>`}</div>`;
+      el._l = l;
+      (inStack ? grp : box).appendChild(el);
     });
     return box;
   }
 
-  /* captions: the cue, 3 words or fewer and 18 characters or fewer at a time */
+  function choreograph(box, g, fromShot) {
+    const t = gsap.timeline();
+    const dir = g.shot === "head" ? (g.side === "right" ? -1 : 1) : 1;
+    if (g.shot === "screen" && fromShot !== "screen") {
+      t.from(".ss-window", { y: 40, opacity: 0, duration: 0.6, ease: EX, clearProps: "transform,opacity" }, 0);
+      t.from(".ss-cam", { x: -56, opacity: 0, duration: 0.6, ease: EX, clearProps: "transform,opacity" }, 0.06);
+    }
+    const base = g.shot === "screen" && fromShot !== "screen" ? 0.25 : 0.08;
+    $$(".L", box).forEach((L) => {
+      const l = L._l;
+      if (ENTER[l.type]) ENTER[l.type](L.firstChild, l, t, base + (l.delay || 0), dir, g);
+    });
+    // after the masks finish, let hand-written words breathe outside their line boxes
+    t.call(() => $$(".ln", box).forEach((n) => (n.style.overflow = "visible")));
+    return t;
+  }
+
+  // gentle parallax while the frame holds: each plate floats a few pixels, nearer plates a bit more
+  function startAmbient(box, g) {
+    if (g.shot !== "head") return;
+    $$(".stack .L", box).forEach((L, i) => {
+      const amp = 5 + i * 3;
+      ambient.push(gsap.to(L, { y: amp, x: (g.side === "right" ? 1 : -1) * (2 + i), duration: 4.6 + i * 1.3, ease: "sine.inOut", yoyo: true, repeat: -1 }));
+    });
+  }
+  function stopMotion() {
+    if (tl) { tl.progress(1).kill(); tl = null; }
+    ambient.forEach((a) => a.kill());
+    ambient = [];
+  }
+
+  /* captions: the cue, 3 words or fewer and 18 characters or fewer at a time, on a white pill */
   function chunks(cue) {
     const words = cue.replace(/[“”"]/g, "").replace(/[.,?!:;]+(\s|$)/g, "$1").split(/\s+/).filter(Boolean);
     const out = [];
@@ -210,44 +392,45 @@
     capTimers.forEach(clearTimeout);
     capTimers = [];
     capEl.textContent = "";
-    if (g.shot === "cut") { capEl.style.display = "none"; return; }
+    if (!g.cap) { capEl.style.display = "none"; return; }
     capEl.style.display = "";
-    if (g.shot === "head") {
-      const cx = clamp(g.fx, 520, 1400);
-      capEl.style.left = cx - 500 + "px";
-      capEl.style.top = clamp(g.face[3] + 30, 830, 930) + "px";
-    } else {
-      capEl.style.left = 700 + "px";
-      capEl.style.top = 905 + "px";
-    }
-    let t = 150;
+    const [cl, ct, cr] = g.cap;
+    Object.assign(capEl.style, { left: cl + "px", top: ct + "px", width: cr - cl + "px" });
+    let t = STILL || SEEK !== null ? 0 : 150;
     chunks(f.cue).forEach((c) => {
-      capTimers.push(setTimeout(() => { capEl.innerHTML = `<span>${esc(c.join(" "))}</span>`; capEl.classList.remove("pop"); void capEl.offsetWidth; capEl.classList.add("pop"); }, t));
+      const put = () => {
+        capEl.style.fontSize = "";
+        capEl.innerHTML = `<span>${esc(c.join(" "))}</span>`;
+        const sp = capEl.firstChild, room = cr - cl - 8;
+        if (sp.offsetWidth > room) capEl.style.fontSize = Math.max(40, Math.floor(60 * room / sp.offsetWidth)) + "px";
+        if (!(STILL || SEEK !== null)) { capEl.classList.remove("pop"); void capEl.offsetWidth; capEl.classList.add("pop"); }
+      };
+      if (t === 0 && !capEl.textContent) put();
+      else if (!(STILL || SEEK !== null)) capTimers.push(setTimeout(put, t));
       t += (0.32 * c.length + 0.1) * 1000;
     });
   }
 
-  const box = (el, r) => { el.style.left = r[0] + "px"; el.style.top = r[1] + "px"; el.style.width = r[2] - r[0] + "px"; el.style.height = r[3] - r[1] + "px"; };
+  const boxEl = (el, r) => { el.style.left = r[0] + "px"; el.style.top = r[1] + "px"; el.style.width = r[2] - r[0] + "px"; el.style.height = r[3] - r[1] + "px"; };
 
-  function setCamera(g, f) {
+  function setCamera(g) {
     stage.classList.remove("shot-head", "shot-screen", "shot-cut", "face-left", "face-right", "face-center");
     stage.classList.add("shot-" + g.shot);
+    if (g.cap) boxEl($(".g-cap"), g.cap);
     if (g.shot !== "head") { prevCam = g; return; }
     stage.classList.add("face-" + g.side);
     const sameTake = prevCam && prevCam.shot === "head" && prevCam.c.ref === g.c.ref;
-    camwrap.style.transition = sameTake ? "transform .6s var(--inout)" : "none";
+    camwrap.style.transition = sameTake && !RM.matches ? "transform .6s var(--inout)" : "none";
     camwrap.style.transform = `translate(${g.tx}px,${g.ty}px) scale(${g.s})`;
     camwrap.dataset.ref = g.c.ref;
     // slow 2% push toward the face so the frame never sits dead still
     const look = lookFor(g.c.ref);
     drift.style.transformOrigin = `${look.fx}px ${look.fy}px`;
     drift.classList.remove("on"); void drift.offsetWidth; drift.classList.add("on");
-    stage.style.setProperty("--pl", g.pl + "px");
-    stage.style.setProperty("--pw", g.pw + "px");
-    stage.style.setProperty("--cr", g.colR + "px");
-    box($(".g-face"), g.face);
-    box($(".g-mic"), g.mic);
-    box($(".g-panel"), [g.pl, 110, g.pl + g.pw, 830]);
+    ["pl", "pw", "pt", "ph"].forEach((k) => stage.style.setProperty("--" + k, g[k] + "px"));
+    boxEl($(".g-face"), g.face);
+    boxEl($(".g-mic"), g.mic);
+    boxEl($(".g-panel"), [g.pl, g.pt, g.pl + g.pw, g.pt + g.ph]);
     prevCam = g;
   }
 
@@ -259,24 +442,46 @@
     return `Talking head · ${side} · zoom ${Math.round((c.zoom || 1) * 100)}% · look ${c.ref}`;
   }
 
+  function enter(i, replay) {
+    const f = frames[i];
+    const g = camFor(f);
+    const fromShot = replay ? null : prevCam && prevCam.shot;
+    if (replay) prevCam = null;
+    setCamera(g);
+    const urlLayer = (f.layers || []).find((l) => l.type === "demo");
+    if (urlLayer) $(".ss-url").textContent = urlLayer.kind === "serp" ? "search?q=" + urlLayer.query : urlLayer.kind === "console" ? "search.google.com/search-console" : urlLayer.url || "yoursite.com";
+    const b = build(f, g);
+    stage.insertBefore(b, capEl);
+    current = b;
+    curDir = g.shot === "head" ? (g.side === "right" ? -1 : 1) : 1;
+    if (motion()) {
+      tl = choreograph(b, g, fromShot);
+      if (SEEK !== null) tl.pause().seek(SEEK);
+      else startAmbient(b, g);
+    }
+    runCaptions(f, g);
+  }
+
   function show(i, replay) {
     idx = clamp(i, 0, frames.length - 1);
     const f = frames[idx];
-    const g = camFor(f);
-    if (replay) prevCam = null;
-    if (current) {
-      const old = current;
-      old.classList.add("leaving");
-      setTimeout(() => old.remove(), 240);
+    if (pending) { pending.kill(); pending = null; }
+    stopMotion();
+    const old = current;
+    current = null;
+    if (old && motion() && !replay) {
+      // exit: plates slide back toward the side they came from, quickly, ease-in
+      const cs = $$(".L > .c", old).reverse();
+      capTimers.forEach(clearTimeout);
+      gsap.to(capEl, { opacity: 0, duration: 0.15, onComplete: () => { capEl.textContent = ""; gsap.set(capEl, { opacity: 1 }); } });
+      gsap.to(cs, { opacity: 0, x: curDir * 40, duration: 0.24, ease: "power2.in", stagger: 0.03 });
+      const target = idx;
+      pending = gsap.delayedCall(0.24 + 0.03 * Math.max(0, cs.length - 1), () => { pending = null; old.remove(); enter(target, false); });
+    } else {
+      if (old) old.remove();
+      if (window.gsap) gsap.set(capEl, { opacity: 1 });
+      enter(idx, replay);
     }
-    setCamera(g, f);
-    const urlLayer = (f.layers || []).find((l) => l.type === "demo");
-    if (urlLayer) $(".ss-url").textContent = urlLayer.kind === "serp" ? "search?q=" + urlLayer.query : urlLayer.kind === "console" ? "search.google.com/search-console" : urlLayer.url || "yoursite.com";
-    const b = build(f);
-    stage.insertBefore(b, capEl);
-    current = b;
-    requestAnimationFrame(() => requestAnimationFrame(() => b.classList.add("go")));
-    runCaptions(f, g);
 
     $("#n-num").textContent = `Frame ${idx + 1}`;
     $("#n-sec").textContent = f.section || "";
@@ -295,21 +500,18 @@
   // script table on the right: one row per frame, the current one highlighted and kept in view
   const ovScroll = $(".ov-scroll");
   $(".overview tbody").innerHTML = frames
-    .map(
-      (f, i) =>
-        `<tr data-i="${i}"><td class="n">${i + 1}<small>${esc(f.time || "")}</small></td><td class="cue">“${esc(f.cue)}”</td><td class="fr">${esc(framingLabel(f))}</td><td class="an">${esc(f.onscreen || "")}</td></tr>`
-    )
+    .map((f, i) => `<tr data-i="${i}"><td class="n">${i + 1}<small>${esc(f.time || "")}</small></td><td class="cue">“${esc(f.cue)}”</td><td class="fr">${esc(framingLabel(f))}</td><td class="an">${esc(f.onscreen || "")}</td></tr>`)
     .join("");
   function syncTable(instant) {
     let row = null;
-    document.querySelectorAll(".overview tr[data-i]").forEach((tr) => {
+    $$(".overview tr[data-i]").forEach((tr) => {
       const on = +tr.dataset.i === idx;
       tr.classList.toggle("cur", on);
       if (on) row = tr;
     });
     if (!row || !ovScroll) return;
     const top = row.offsetTop - ovScroll.clientHeight / 2 + row.offsetHeight / 2;
-    ovScroll.scrollTo({ top: Math.max(0, top), behavior: instant ? "auto" : "smooth" });
+    ovScroll.scrollTo({ top: Math.max(0, top), behavior: instant || RM.matches ? "auto" : "smooth" });
   }
   $(".overview tbody").addEventListener("click", (e) => {
     const tr = e.target.closest("tr[data-i]");
@@ -334,6 +536,7 @@
   document.addEventListener("fullscreenchange", () => setTimeout(fit, 50));
   $("#b-prev").onclick = () => show(idx - 1);
   $("#b-next").onclick = () => show(idx + 1);
+  $("#b-replay").onclick = () => show(idx, true);
   $("#b-table").onclick = () => toggle("table-off", "#b-table");
   $("#b-guides").onclick = () => toggle("guides", "#b-guides");
   $("#b-cap").onclick = () => toggle("nocap", "#b-cap");
@@ -342,9 +545,11 @@
 
   if (q.get("bg") === "green") document.body.classList.add("green", "clean");
   if (q.has("clean")) document.body.classList.add("clean");
+  if (q.has("guides")) document.body.classList.add("guides");
+  if (q.has("solo")) document.body.classList.add("solo", "clean");
   fit();
   const m = location.hash.match(/^#f(\d+)$/);
   show(m ? +m[1] - 1 : 0);
   window.addEventListener("hashchange", () => { const h = location.hash.match(/^#f(\d+)$/); if (h && +h[1] - 1 !== idx) show(+h[1] - 1); });
-  window.__storyboard = { show, get index() { return idx; }, count: frames.length, camFor: (i) => camFor(frames[i]) };
+  window.__storyboard = { show, get index() { return idx; }, count: frames.length, camFor: (i) => camFor(frames[i]), settle: () => tl && tl.progress(1) };
 })();

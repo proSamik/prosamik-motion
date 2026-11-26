@@ -1,8 +1,12 @@
-/* Storyboard data for issue #22: How to rank in Google, what exactly is SEO?  (v3)
+/* Storyboard data for issue #22: How to rank in Google, what exactly is SEO?  (v4)
    ---------------------------------------------------------------------------
-   v3 follows Samik's real camera: nothing ever goes above his head. On talking-head
-   frames the edit zooms into the left or right part of the camera frame, so his face
-   sits a little to one side, and the animation runs on the other side.
+   v4 keeps the v3 script, cues, timings and camera framing, and restyles the plates to
+   prosamik.com: white cards, Arial 750 headlines, Caveat hand-written accent words, the
+   thumbnail red (#E62117 to #E8590C) only as an accent. Every entrance is choreographed by
+   engine.js (GSAP), so a frame only lists WHAT appears; the engine decides HOW it moves.
+
+   Camera rule (unchanged): nothing ever goes above his head. Talking-head frames zoom into the
+   left or right part of the camera frame, his face sits off-centre, graphics live on the free side.
 
    HOW TO WRITE YOUR OWN (one object per frame):
    {
@@ -13,26 +17,30 @@
           // shot: "head" (talking head) | "screen" (screen share) | "cut" (full-screen cutaway)
           // ref: which of your camera looks (1 or 3 = close, 2 = slightly wider)
           // zoom: 1 | 1.25 | 1.45   face: "left" | "right" | "center"
-          // the animation goes on the side your face is NOT on
      layers: [ { type, slot, delay, ...fields } ],
      onscreen: "Plain-English description of what appears",
      motion: "How it enters and leaves",
      deliver: "How to say it: pause, gesture, look"
    }
-   slots on talking-head frames: side (middle of the free side), side-top, side-low
-   slots on screen-share frames: win (inside the browser window), pill (chapter pill above
-          your camera box), win-note (hand-written note inside the window)
-   slots on cutaways: cut-top, cut-mid
-   types: kicker{text} headline{text,size:"sm"} card{eyebrow,title,body,items,ink}
-          lowerthird{name,role} search{query} flow{steps:[{t,s,hi}]} chips{items:["!highlighted","plain"]}
-          note{text,flip,down} full{text,sub,kicker} endtiles{}
-          demo{kind:"serp"|"page"|"console", ...}  (screen-share mock, replace with your real recording)
-   text tricks: *word* = hand-written accent word with drawn underline, [word] = red highlight box
+   slots on talking-head frames: side, side-top, side-low. They are stacked top to bottom in one
+          column on the free side (centred, 28px apart), so cards never collide with each other,
+          the face or the mic.
+   slots on screen-share frames: win (inside the app window), pill (chapter pill above your camera
+          box), win-note (hand-written note, place it with style:"left:..px;top:..px")
+   slots on cutaways: full, cut-mid.   col-left: a fixed column on the wall (end screen).
+   types: kicker{text}  ("2 · Keywords" renders the number in a red box)
+          headline{text,size:"sm",count}  (count: N counts the [#1] box down from #N to #1)
+          card{eyebrow,title,body,items,ink}   items: ["text" | {t,s,ok}]  ok = tick that pops
+          lowerthird{name,role}  search{query} (types on)  flow{steps:[{t,s,hi}],gap}
+          chips{items:["!highlighted","plain"]}  note{text,arrow:"up"|"upr"|"down"|"left"}
+          full{text,sub,kicker}  endtiles{}  demo{kind:"serp"|"page"|"console", ...}
+   text tricks: *word* = Caveat hand-written accent word with a drawn underline,
+                [word] = solid red key-word box that wipes in, \n = new line (each line rises in)
    delay: seconds after the frame starts (use it to land a graphic on a later word in the line)
 */
 window.STORYBOARD = {
   issue: 22,
-  version: 3,
+  version: 4,
   title: "How to rank in Google, what exactly is SEO?",
   accent: ["#e62117", "#e8590c"], // from the thumbnail's red "#1" box
   frames: [
@@ -43,7 +51,7 @@ window.STORYBOARD = {
       cue: "You published the page. So why does nobody find it on Google?",
       layers: [
         { type: "search", slot: "side", query: "your page, anyone?", delay: 0.2 },
-        { type: "note", slot: "side-low", style: "top:640px;left:calc(var(--pl) + 360px)", text: "0 results", delay: 1.7 }
+        { type: "note", slot: "side-low", text: "0 results", arrow: "up", delay: 1.7 }
       ],
       onscreen: "Zoomed in, your face on the right. On the left a search bar types \"your page, anyone?\" and a note says \"0 results\".",
       motion: "Bar rises in (0.4s), text types on. The note and its arrow draw on \"nobody\".",
@@ -66,7 +74,7 @@ window.STORYBOARD = {
       cam: { shot: "head", ref: 2, zoom: 1.25, face: "right" },
       cue: "By the end you'll know exactly how a page gets ranked, and you get a free checklist to do it.",
       layers: [
-        { type: "headline", slot: "side-top", text: "RANK [#1]" },
+        { type: "headline", slot: "side-top", text: "RANK [#1]", count: 9 },
         { type: "card", slot: "side-low", eyebrow: "Free at the end", title: "SEO checklist", body: "One page. Beginner friendly.", delay: 0.8 }
       ],
       onscreen: "Slightly wider look, face on the right. Left: the thumbnail line \"RANK #1\", then a card teasing the free checklist.",
@@ -128,7 +136,7 @@ window.STORYBOARD = {
       cue: "Google does three things. It crawls, it indexes, and it ranks.",
       layers: [
         { type: "kicker", slot: "side-top", text: "1 · How Google works" },
-        { type: "flow", slot: "side-low", delay: 0.6, steps: [{ t: "Crawl" }, { t: "Index" }, { t: "Rank", hi: true }] }
+        { type: "flow", slot: "side-low", delay: 0.6, gap: 0.7, steps: [{ t: "Crawl" }, { t: "Index" }, { t: "Rank", hi: true }] }
       ],
       onscreen: "Close, face on the left. Right: chapter 1 pill, then Crawl → Index → Rank.",
       motion: "Pill rises in. Each box lands on its spoken word (about 0.7s apart).",
@@ -140,7 +148,7 @@ window.STORYBOARD = {
       cue: "Crawling means Google's bot follows links and reads your pages.",
       layers: [
         { type: "demo", slot: "win", kind: "page", url: "yoursite.com/blog/post", title: "How to add subtitles to a video", hl: "links" },
-        { type: "note", slot: "win-note", style: "left:1210px;top:610px", text: "the bot follows these", flip: true, delay: 0.8 }
+        { type: "note", slot: "win-note", style: "left:1180px;top:560px", text: "the bot follows these", arrow: "left", delay: 0.8 }
       ],
       onscreen: "Screen share: one of your blog posts. The links in it get outlined, note \"the bot follows these\".",
       motion: "Hard cut to the screen layout. Outlines and the arrow draw 0.8s in.",
@@ -179,7 +187,7 @@ window.STORYBOARD = {
           { url: "yourdomain.com/blog", t: "Blog" },
           { url: "yourdomain.com/pricing", t: "Pricing" }
         ], hl: "query" },
-        { type: "note", slot: "win-note", style: "left:1180px;top:560px", text: "listed = Google found you", flip: true, delay: 1.2 }
+        { type: "note", slot: "win-note", style: "left:1110px;top:470px", text: "listed = Google found you", arrow: "left", delay: 1.2 }
       ],
       onscreen: "Screen share: type site:yourdomain.com. Your pages list, note \"listed = Google found you\".",
       motion: "The query box gets a red outline, results drop in, the note draws 1.2s later.",
@@ -272,7 +280,7 @@ window.STORYBOARD = {
       layers: [
         { type: "headline", slot: "side-top", size: "sm", text: "A link is a\n*vote*." },
         { type: "chips", slot: "side-low", items: ["!Trusted site", "Relevant topic", "Spammy directory"], delay: 0.9 },
-        { type: "note", slot: "side-low", style: "top:660px;left:calc(var(--pl) + 300px)", text: "quality beats quantity", delay: 1.6 }
+        { type: "note", slot: "side-low", text: "quality beats quantity", arrow: "up", delay: 1.6 }
       ],
       onscreen: "Close, face on the right. Left: \"A link is a vote.\", three pills with the trusted one highlighted, note \"quality beats quantity\".",
       motion: "Headline in, pills pop in, note and arrow draw last.",
@@ -285,7 +293,7 @@ window.STORYBOARD = {
       cue: "Last, the technical basics. Is it fast? Does it work on mobile?",
       layers: [
         { type: "kicker", slot: "side-top", text: "5 · Technical" },
-        { type: "card", slot: "side-low", style: "top:250px", eyebrow: "Check", items: [
+        { type: "card", slot: "side-low", eyebrow: "Check", items: [
           { t: "Loads fast" }, { t: "Works on mobile" }, { t: "Has a sitemap", s: "next video" }
         ], delay: 0.4 }
       ],
@@ -299,7 +307,7 @@ window.STORYBOARD = {
       cue: "And do you have a sitemap telling Google where every page is? Submit it in Search Console.",
       layers: [
         { type: "demo", slot: "win", kind: "console", site: "yoursite.com", sitemap: "sitemap.xml" },
-        { type: "note", slot: "win-note", style: "left:1250px;top:470px", text: "paste it, press Submit", flip: true, delay: 1 }
+        { type: "note", slot: "win-note", style: "left:1230px;top:392px", text: "paste it, press Submit", arrow: "upr", delay: 1 }
       ],
       onscreen: "Screen share: Search Console's Sitemaps page. You paste sitemap.xml and press Submit, a \"Success\" row appears.",
       motion: "The Submit button gets the red outline, the note draws on \"Search Console\".",
@@ -324,7 +332,7 @@ window.STORYBOARD = {
       cue: "I put all of this on a one-page beginner SEO checklist. It's free, the link is below.",
       layers: [
         { type: "card", slot: "side-top", ink: true, eyebrow: "Free download", title: "Beginner SEO\n*checklist*", body: "Link in the description" },
-        { type: "note", slot: "side-low", style: "top:560px;left:calc(var(--pl) + 120px)", text: "below", down: true, delay: 1.2 }
+        { type: "note", slot: "side-low", text: "below", arrow: "down", delay: 1.2 }
       ],
       onscreen: "Close, face on the left. Right: black card \"Beginner SEO checklist\", hand-written \"below\" with an arrow pointing down.",
       motion: "Card slides in, arrow draws on \"below\".",

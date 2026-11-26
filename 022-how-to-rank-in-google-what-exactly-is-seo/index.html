@@ -18,6 +18,7 @@
   <button class="btn" id="b-prev" aria-label="Previous frame">←</button>
   <span class="count">1 / 1</span>
   <button class="btn" id="b-next" aria-label="Next frame">→</button>
+  <button class="btn" id="b-replay">Replay</button>
   <button class="btn on" id="b-table">Script table</button>
   <button class="btn" id="b-cap">Captions</button>
   <button class="btn" id="b-guides">Guides</button>
@@ -29,14 +30,14 @@
  <div class="left">
   <div class="viewport">
     <div class="stage">
-      <svg width="0" height="0" style="position:absolute"><defs>
-        <linearGradient id="gAccent" x1="0" x2="1"><stop offset="0" stop-color="var(--c1)"/><stop offset="1" stop-color="var(--c2)"/></linearGradient>
+      <svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>
+        <linearGradient id="gAccent" x1="0" x2="1" gradientTransform="rotate(5)"><stop offset="0" stop-color="#E62117"/><stop offset="1" stop-color="#E8590C"/></linearGradient>
       </defs></svg>
 
       <!-- talking head: the whole camera frame, zoomed and shifted per frame -->
       <div class="camwrap"><div class="drift"></div></div>
 
-      <!-- screen share: wallpaper, browser window, camera box on the left -->
+      <!-- screen share: near-white desk, camera box on the left, app window on the right -->
       <div class="ss" aria-hidden="true">
         <div class="ss-cam"><div class="mini"></div></div>
         <div class="ss-window"><div class="ss-chrome"><i></i><i></i><i></i><div class="ss-url">yoursite.com</div></div></div>
@@ -44,7 +45,7 @@
 
       <div class="caption"></div>
       <div class="safe"></div>
-      <div class="g g-face"></div><div class="g g-mic"></div><div class="g g-panel"></div>
+      <div class="g g-face"></div><div class="g g-mic"></div><div class="g g-panel"></div><div class="g g-cap"></div>
       <div class="tag">Stand-in footage · your camera goes here</div>
     </div>
   </div>
@@ -59,7 +60,7 @@
     <div class="cell"><h4>Animation in / out</h4><p id="n-motion"></p></div>
     <div class="cell"><h4>How to deliver it</h4><p id="n-deliver"></p></div>
   </section>
-  <p class="keys"><kbd>→</kbd> <kbd>↓</kbd> <kbd>Space</kbd> next · <kbd>←</kbd> <kbd>↑</kbd> back · <kbd>R</kbd> replay · <kbd>C</kbd> captions · <kbd>T</kbd> show or hide the script table · <kbd>G</kbd> face, mic and graphics zones · <kbd>N</kbd> hide notes · <kbd>F</kbd> fullscreen · click left/right of the frame to step · add <code>?bg=green</code> for graphics on green</p>
+  <p class="keys"><kbd>→</kbd> <kbd>↓</kbd> <kbd>Space</kbd> next · <kbd>←</kbd> <kbd>↑</kbd> back · <kbd>R</kbd> replay · <kbd>C</kbd> captions · <kbd>T</kbd> show or hide the script table · <kbd>G</kbd> face, mic, graphics and caption zones · <kbd>N</kbd> hide notes · <kbd>F</kbd> fullscreen · click left/right of the frame to step · add <code>?bg=green</code> for graphics on green · older versions: <a href="v3/">v3</a> · <a href="v2/">v2</a> · <a href="v1/">v1</a></p>
 
  </div>
  <aside class="overview" aria-label="Script table">
@@ -73,6 +74,7 @@
  </aside>
 </main>
 
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js" integrity="sha512-7eHRwcbYkK4d9g/6tD/mhkf++eoTHwpNM9woBxtPUBWm67zeAfFC+HrdoE2GanKeocly/VxeLvIqwvCdk7qScg==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
 <script src="frames.js"></script>
 <script src="engine.js"></script>
 </body>
