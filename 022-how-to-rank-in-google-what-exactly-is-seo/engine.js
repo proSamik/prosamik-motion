@@ -10,7 +10,9 @@
    (parallax) and the camera pushes 2%. Before the next frame the plates slide back out.
    Without GSAP, or with prefers-reduced-motion, every frame simply lands in its final state.
    Keys: Right/Down next, Left/Up back, Space or P play/pause (loops every frame), R replay, C captions,
-   N notes, T table, G guides, F fullscreen. ?play starts playing on load.
+   N notes, T table, G guides, F fullscreen, M sound on or off. ?play starts playing on load.
+   Audio (v4.5): audio.js lists one voice clip per frame (the spoken line). Each frame plays its clip,
+   the caption follows the clip's timing, and during Play the next frame comes when the clip ends.
    ?refs=../refs/ swaps in the local reference stills; the public page shows the illustrated stand-in. */
 (function () {
   const SB = window.STORYBOARD;
@@ -406,7 +408,32 @@
   let capG = null;
   // Montserrat may arrive after the first caption is measured: measure again once fonts are ready
   if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => { if (capG && capEl.firstChild) placeCaption(capG); });
-  function runCaptions(f, g) {
+  /* ---------- voice: one clip per frame from audio.js ---------- */
+  const AU = window.STORYBOARD_AUDIO || null;
+  const voice = new Audio();
+  voice.preload = "auto";
+  const warm = new Audio();
+  warm.preload = "auto";
+  let muted = false;
+  try { muted = localStorage.getItem("sb-muted") === "1"; } catch (e) {}
+  const clipFor = (i) => (AU && AU.clips ? AU.clips[i] : null);
+  const soundOK = () => !!AU && !muted && !STILL && SEEK === null;
+  function stopVoice() { voice.onended = null; voice.pause(); }
+  // starts the frame's clip; true when a clip is playing (or about to)
+  function playVoice(i) {
+    stopVoice();
+    const c = clipFor(i);
+    if (!c || !soundOK()) return false;
+    voice.src = (AU.base || "") + c.src;
+    try { voice.currentTime = 0; } catch (e) {}
+    const p = voice.play();
+    if (p && p.catch) p.catch(() => { if (playing && idx === i) schedule(frames[i], false); });
+    const n = clipFor((i + 1) % frames.length);
+    if (n) warm.src = (AU.base || "") + n.src;
+    return true;
+  }
+
+  function runCaptions(f, g, withVoice) {
     capG = g;
     capTimers.forEach(clearTimeout);
     capTimers = [];
@@ -414,7 +441,13 @@
     if (g.capTop == null) { capEl.style.display = "none"; return; }
     capEl.style.display = "";
     let t = STILL || SEEK !== null ? 0 : 150;
-    chunks(f.cue).forEach((c) => {
+    const cs = chunks(f.cue);
+    const clip = withVoice ? clipFor(idx) : null;
+    const words = cs.reduce((a, c) => a + c.length, 0) || 1;
+    // with a voice clip, each chunk shows for its share of the clip, so the caption follows the audio
+    const perWord = clip ? (clip.dur * 1000 - 120) / words : 0;
+    if (clip) t = 60;
+    cs.forEach((c) => {
       const put = () => {
         capEl.innerHTML = `<span>${esc(c.join(" "))}</span>`;
         placeCaption(g);
@@ -422,7 +455,7 @@
       };
       if (t === 0 && !capEl.textContent) put();
       else if (!(STILL || SEEK !== null)) capTimers.push(setTimeout(put, t));
-      t += (0.32 * c.length + 0.1) * 1000;
+      t += clip ? perWord * c.length : (0.32 * c.length + 0.1) * 1000;
     });
   }
 
@@ -476,8 +509,9 @@
       if (SEEK !== null) tl.pause().seek(SEEK);
       else startAmbient(b, g);
     }
-    runCaptions(f, g);
-    if (playing) schedule(f);
+    const withVoice = playVoice(i);
+    runCaptions(f, g, withVoice);
+    if (playing) schedule(f, withVoice);
   }
 
   /* ---------- autoplay: loops all frames for a bird's-eye view ----------
@@ -490,19 +524,39 @@
     const anim = tl ? Math.min(tl.duration(), 6) + 1.2 : 0;
     return Math.max(read, anim);
   }
-  function schedule(f) {
+  const advance = () => { if (playing) show((idx + 1) % frames.length); };
+  function schedule(f, withVoice) {
     clearTimeout(playTimer);
-    playTimer = setTimeout(() => { if (playing) show((idx + 1) % frames.length); }, holdFor(f) * 1000);
+    if (withVoice) {
+      // move on a beat after the voice ends (and never before the frame's entrance has played)
+      const minHold = tl ? Math.min(tl.duration(), 3) : 0;
+      const start = Date.now();
+      voice.onended = () => {
+        const wait = Math.max(700, minHold * 1000 - (Date.now() - start));
+        clearTimeout(playTimer);
+        playTimer = setTimeout(advance, wait);
+      };
+      return;
+    }
+    playTimer = setTimeout(advance, holdFor(f) * 1000);
   }
   function setPlaying(on) {
     playing = on;
     clearTimeout(playTimer);
+    if (!on) stopVoice();
     document.body.classList.toggle("playing", on);
     const b = $("#b-play");
     if (b) { b.classList.toggle("on", on); b.setAttribute("aria-pressed", on ? "true" : "false"); $(".lbl", b).textContent = on ? "Pause" : "Play"; }
     if (on) show(idx, true);
   }
   const togglePlay = () => setPlaying(!playing);
+  function setMuted(on) {
+    muted = on;
+    try { localStorage.setItem("sb-muted", on ? "1" : "0"); } catch (e) {}
+    const b = $("#b-sound");
+    if (b) { b.classList.toggle("muted", on); b.setAttribute("aria-pressed", on ? "false" : "true"); $(".lbl", b).textContent = on ? "Sound off" : "Sound on"; }
+    if (on) { stopVoice(); if (playing) schedule(frames[idx], false); }
+  }
   // manual navigation: stop autoplay first, then step
   const go = (i, replay) => { if (playing) setPlaying(false); show(i, replay); };
 
@@ -510,6 +564,7 @@
     idx = clamp(i, 0, frames.length - 1);
     const f = frames[idx];
     if (pending) { pending.kill(); pending = null; }
+    stopVoice();
     stopMotion();
     const old = current;
     current = null;
@@ -572,6 +627,7 @@
     else if (k === "r" || k === "R") { e.preventDefault(); go(idx, true); }
     else if (k === "Home") { e.preventDefault(); go(0); }
     else if (k === "End") { e.preventDefault(); go(frames.length - 1); }
+    else if ((k === "m" || k === "M") && AU) setMuted(!muted);
     else if (k === "c" || k === "C") toggle("nocap", "#b-cap");
     else if (k === "n" || k === "N") toggle("clean", "#b-notes");
     else if (k === "t" || k === "T") toggle("table-off", "#b-table");
@@ -580,6 +636,7 @@
   });
   document.addEventListener("fullscreenchange", () => setTimeout(fit, 50));
   $("#b-play").onclick = togglePlay;
+  if (AU) { $("#b-sound").onclick = () => setMuted(!muted); setMuted(muted); } else if ($("#b-sound")) $("#b-sound").hidden = true;
   $("#b-prev").onclick = () => go(idx - 1);
   $("#b-next").onclick = () => go(idx + 1);
   $("#b-replay").onclick = () => go(idx, true);
