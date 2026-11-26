@@ -172,8 +172,8 @@
     else if (k === "ArrowLeft" || k === "ArrowUp" || k === "PageUp") { e.preventDefault(); show(idx - 1); }
     else if (k === " ") { e.preventDefault(); show(idx + 1); }
     else if (k === "r" || k === "R") { e.preventDefault(); show(idx, true); }
-    else if (k === "Home") show(0);
-    else if (k === "End") show(frames.length - 1);
+    else if (k === "Home") { e.preventDefault(); show(0); }
+    else if (k === "End") { e.preventDefault(); show(frames.length - 1); }
     else if (k === "n" || k === "N") toggle("clean", "#b-notes");
     else if (k === "t" || k === "T") toggle("table", "#b-table");
     else if (k === "g" || k === "G") toggle("guides", "#b-guides");
@@ -193,5 +193,6 @@
   fit();
   const m = location.hash.match(/^#f(\d+)$/);
   show(m ? +m[1] - 1 : 0);
+  window.addEventListener("hashchange", () => { const h = location.hash.match(/^#f(\d+)$/); if (h && +h[1] - 1 !== idx) show(+h[1] - 1); });
   window.__storyboard = { show, get index() { return idx; }, count: frames.length };
 })();
