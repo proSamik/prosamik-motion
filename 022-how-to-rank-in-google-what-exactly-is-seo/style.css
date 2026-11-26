@@ -50,7 +50,7 @@ button{font:inherit;color:inherit}
 .notes h4{margin:0 0 8px;font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);font-weight:700}
 .notes p{margin:0;font-size:15px;line-height:1.5;color:var(--ink-2)}
 .notes .cue p{font-size:24px;font-weight:750;letter-spacing:-.035em;line-height:1.25;color:var(--ink)}
-.notes .cue .meta{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:10px}
+.notes .cue .meta{display:flex;flex-wrap:wrap;align-items:flex-start;gap:8px;margin-bottom:10px}
 .pill{display:inline-block;border:1px solid #e2e2e2;border-radius:999px;padding:4px 11px;font-size:12px;color:#333;background:#fff}
 .pill.ink{background:var(--ink);color:#fff;border-color:var(--ink);font-weight:700}
 .pill.frame{border-color:var(--c1);color:#b3180f;font-weight:600;border-radius:12px;padding:5px 12px;line-height:1.35}
@@ -104,7 +104,7 @@ body.table-off .wrap{grid-template-columns:minmax(0,1fr);max-width:1320px}
 .s-full>.c,.s-win>.c{position:absolute;inset:0}
 .s-cut-mid{left:0;right:0;top:640px;display:flex;justify-content:center}
 .s-win{left:540px;top:112px;width:1324px;height:784px;overflow:hidden;border-radius:0 0 var(--r-card) var(--r-card)}
-.s-pill{left:56px;top:62px}
+.s-pill{left:56px;top:42px}
 
 /* ---------- headline plate: rounded, elevated white card ---------- */
 .plate{position:relative;display:inline-block;background:#fff;border:1px solid #ececec;border-radius:var(--r-card);padding:42px 56px 48px;box-shadow:var(--elev)}
