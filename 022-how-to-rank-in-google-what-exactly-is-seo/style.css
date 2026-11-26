@@ -331,7 +331,7 @@ body.green .viewport{border-radius:0}
 }
 
 /* public page: his approved still */
-body.photo .ss-cam .mini{background-size:1500px auto;background-position:-620px -91px}
+body.photo .ss-cam .mini{background-size:1340px auto;background-position:-455px -4px}
 
 /* ?solo : the stage alone at 1:1 (stills, exports) */
 body.solo .top,body.solo .progress,body.solo .overview{display:none}

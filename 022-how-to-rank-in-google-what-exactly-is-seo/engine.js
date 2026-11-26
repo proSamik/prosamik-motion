@@ -45,9 +45,9 @@
     3: { fx: 970, fy: 370, hw: 190, hh: 300, mic: [620, 720, 1040, 1080] },
   };
   const STAND = { fx: 960, fy: 370, hw: 190, hh: 300, mic: [620, 720, 1040, 1080] };
-  /* the public page uses one approved still of Samik (photo.jpg, taken from look 2) for every look */
-  const PHOTO = "photo.jpg"; // his edited wide still (look 2), approved by Samik Nov 26
-  const lookFor = (ref) => (REFS ? LOOKS[ref] || LOOKS[1] : PHOTO ? LOOKS[2] : STAND);
+  /* the public page uses one approved still of Samik (photo.jpg, taken from look 1) for every look */
+  const PHOTO = "photo.jpg?v=4.4"; // his edited blue hoodie still (look 1), picked by Samik Nov 26
+  const lookFor = (ref) => (REFS ? LOOKS[ref] || LOOKS[1] : PHOTO ? LOOKS[1] : STAND);
   const TARGET_X = { right: 1330, left: 590, center: 960 };
   const CAP_TOP = 862; // caption pill top on talking-head frames (lower middle of the frame)
 
