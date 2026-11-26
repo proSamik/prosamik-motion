@@ -9,7 +9,8 @@
    nodes cascade, ticks pop, counters count. While a frame holds, the cards drift a few pixels
    (parallax) and the camera pushes 2%. Before the next frame the plates slide back out.
    Without GSAP, or with prefers-reduced-motion, every frame simply lands in its final state.
-   Keys: Right/Down/Space next, Left/Up back, R replay, C captions, N notes, T table, G guides, F fullscreen.
+   Keys: Right/Down next, Left/Up back, Space or P play/pause (loops every frame), R replay, C captions,
+   N notes, T table, G guides, F fullscreen. ?play starts playing on load.
    ?refs=../refs/ swaps in the local reference stills; the public page shows the illustrated stand-in. */
 (function () {
   const SB = window.STORYBOARD;
@@ -476,7 +477,34 @@
       else startAmbient(b, g);
     }
     runCaptions(f, g);
+    if (playing) schedule(f);
   }
+
+  /* ---------- autoplay: loops all frames for a bird's-eye view ----------
+     Each frame plays its entrance, then holds long enough to read the spoken line
+     (about 0.32s a word, at least 3.5s and at most 8s), then moves on. Any manual step pauses it. */
+  let playing = false, playTimer = null;
+  function holdFor(f) {
+    const words = (f.cue || "").trim().split(/\s+/).length;
+    const read = Math.min(8, Math.max(3.5, 1.2 + words * 0.32));
+    const anim = tl ? Math.min(tl.duration(), 6) + 1.2 : 0;
+    return Math.max(read, anim);
+  }
+  function schedule(f) {
+    clearTimeout(playTimer);
+    playTimer = setTimeout(() => { if (playing) show((idx + 1) % frames.length); }, holdFor(f) * 1000);
+  }
+  function setPlaying(on) {
+    playing = on;
+    clearTimeout(playTimer);
+    document.body.classList.toggle("playing", on);
+    const b = $("#b-play");
+    if (b) { b.classList.toggle("on", on); b.setAttribute("aria-pressed", on ? "true" : "false"); $(".lbl", b).textContent = on ? "Pause" : "Play"; }
+    if (on) show(idx, true);
+  }
+  const togglePlay = () => setPlaying(!playing);
+  // manual navigation: stop autoplay first, then step
+  const go = (i, replay) => { if (playing) setPlaying(false); show(i, replay); };
 
   function show(i, replay) {
     idx = clamp(i, 0, frames.length - 1);
@@ -531,18 +559,19 @@
   }
   $(".overview tbody").addEventListener("click", (e) => {
     const tr = e.target.closest("tr[data-i]");
-    if (tr) show(+tr.dataset.i);
+    if (tr) go(+tr.dataset.i);
   });
 
   const toggle = (cls, btn) => { document.body.classList.toggle(cls); if (btn) $(btn).classList.toggle("on"); fit(); };
   document.addEventListener("keydown", (e) => {
     if (e.metaKey || e.ctrlKey || e.altKey) return;
     const k = e.key;
-    if (k === "ArrowRight" || k === "ArrowDown" || k === "PageDown" || k === " ") { e.preventDefault(); show(idx + 1); }
-    else if (k === "ArrowLeft" || k === "ArrowUp" || k === "PageUp") { e.preventDefault(); show(idx - 1); }
-    else if (k === "r" || k === "R") { e.preventDefault(); show(idx, true); }
-    else if (k === "Home") { e.preventDefault(); show(0); }
-    else if (k === "End") { e.preventDefault(); show(frames.length - 1); }
+    if (k === " " || k === "p" || k === "P") { e.preventDefault(); togglePlay(); }
+    else if (k === "ArrowRight" || k === "ArrowDown" || k === "PageDown") { e.preventDefault(); go(idx + 1); }
+    else if (k === "ArrowLeft" || k === "ArrowUp" || k === "PageUp") { e.preventDefault(); go(idx - 1); }
+    else if (k === "r" || k === "R") { e.preventDefault(); go(idx, true); }
+    else if (k === "Home") { e.preventDefault(); go(0); }
+    else if (k === "End") { e.preventDefault(); go(frames.length - 1); }
     else if (k === "c" || k === "C") toggle("nocap", "#b-cap");
     else if (k === "n" || k === "N") toggle("clean", "#b-notes");
     else if (k === "t" || k === "T") toggle("table-off", "#b-table");
@@ -550,14 +579,15 @@
     else if (k === "f" || k === "F") { const vp = $(".viewport"); document.fullscreenElement ? document.exitFullscreen() : vp.requestFullscreen && vp.requestFullscreen(); }
   });
   document.addEventListener("fullscreenchange", () => setTimeout(fit, 50));
-  $("#b-prev").onclick = () => show(idx - 1);
-  $("#b-next").onclick = () => show(idx + 1);
-  $("#b-replay").onclick = () => show(idx, true);
+  $("#b-play").onclick = togglePlay;
+  $("#b-prev").onclick = () => go(idx - 1);
+  $("#b-next").onclick = () => go(idx + 1);
+  $("#b-replay").onclick = () => go(idx, true);
   $("#b-table").onclick = () => toggle("table-off", "#b-table");
   $("#b-guides").onclick = () => toggle("guides", "#b-guides");
   $("#b-cap").onclick = () => toggle("nocap", "#b-cap");
   $("#b-notes").onclick = () => toggle("clean", "#b-notes");
-  $(".viewport").addEventListener("click", (e) => { const r = e.currentTarget.getBoundingClientRect(); show(e.clientX - r.left < r.width / 3 ? idx - 1 : idx + 1); });
+  $(".viewport").addEventListener("click", (e) => { const r = e.currentTarget.getBoundingClientRect(); go(e.clientX - r.left < r.width / 3 ? idx - 1 : idx + 1); });
 
   if (q.get("bg") === "green") document.body.classList.add("green", "clean");
   if (q.has("clean")) document.body.classList.add("clean");
@@ -566,6 +596,7 @@
   fit();
   const m = location.hash.match(/^#f(\d+)$/);
   show(m ? +m[1] - 1 : 0);
-  window.addEventListener("hashchange", () => { const h = location.hash.match(/^#f(\d+)$/); if (h && +h[1] - 1 !== idx) show(+h[1] - 1); });
-  window.__storyboard = { show, get index() { return idx; }, count: frames.length, camFor: (i) => camFor(frames[i]), settle: () => tl && tl.progress(1) };
+  window.addEventListener("hashchange", () => { const h = location.hash.match(/^#f(\d+)$/); if (h && +h[1] - 1 !== idx) go(+h[1] - 1); });
+  if (q.has("play")) setPlaying(true);
+  window.__storyboard = { show, play: setPlaying, get playing() { return playing; }, get index() { return idx; }, count: frames.length, camFor: (i) => camFor(frames[i]), settle: () => tl && tl.progress(1) };
 })();

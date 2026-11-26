@@ -9,12 +9,13 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Caveat:wght@700&family=Montserrat:wght@800&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="style.css?v=4.2.1">
+<link rel="stylesheet" href="style.css?v=4.3">
 </head>
 <body>
 <header class="top">
   <span class="brand">ProSamik<b>motion</b></span>
   <span class="title"></span>
+  <button class="btn play" id="b-play" aria-pressed="false" title="Play all frames in a loop (Space)"><svg class="i-play" viewBox="0 0 12 12" aria-hidden="true"><path d="M3 1.6v8.8L10.4 6z"/></svg><svg class="i-pause" viewBox="0 0 12 12" aria-hidden="true"><rect x="2.4" y="1.8" width="2.6" height="8.4" rx=".8"/><rect x="7" y="1.8" width="2.6" height="8.4" rx=".8"/></svg><span class="lbl">Play</span></button>
   <button class="btn" id="b-prev" aria-label="Previous frame">←</button>
   <span class="count">1 / 1</span>
   <button class="btn" id="b-next" aria-label="Next frame">→</button>
@@ -60,7 +61,8 @@
     <div class="cell"><h4>How to deliver it</h4><p id="n-deliver"></p></div>
   </section>
   <ol class="keys">
-    <li><kbd>→</kbd> <kbd>↓</kbd> <kbd>Space</kbd> next frame, <kbd>←</kbd> <kbd>↑</kbd> previous frame</li>
+    <li><kbd>Space</kbd> or <kbd>P</kbd> play every frame in a loop, again to pause</li>
+    <li><kbd>→</kbd> <kbd>↓</kbd> next frame, <kbd>←</kbd> <kbd>↑</kbd> previous frame (both pause playback)</li>
     <li><kbd>R</kbd> replay the frame</li>
     <li><kbd>C</kbd> captions on or off</li>
     <li><kbd>T</kbd> show or hide the script table</li>
@@ -85,7 +87,7 @@
 </main>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js" integrity="sha512-7eHRwcbYkK4d9g/6tD/mhkf++eoTHwpNM9woBxtPUBWm67zeAfFC+HrdoE2GanKeocly/VxeLvIqwvCdk7qScg==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
-<script src="frames.js?v=4.2.1"></script>
-<script src="engine.js?v=4.2.1"></script>
+<script src="frames.js?v=4.3"></script>
+<script src="engine.js?v=4.3"></script>
 </body>
 </html>
